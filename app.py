@@ -1,9 +1,19 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from db import get_db_connection, init_db
+from db import get_db_connection, init_db # <--- Make sure init_db is imported
 from models import User
 from notifications import send_reminder_email
+
+# --- NEW CODE BLOCK START ---
+# Run this immediately when the app loads, so tables are created on Leapcell
+try:
+    print("Initializing Database...")
+    init_db()
+    print("Database Initialized!")
+except Exception as e:
+    print(f"Error creating tables: {e}")
+# --- NEW CODE BLOCK END ---
 
 app = Flask(__name__)
 app.secret_key = 'change_this_to_something_secret'
