@@ -7,41 +7,43 @@
     <p class="text-muted" id="date-display" style="font-size: 0.9rem;"></p>
 </div>
 
-<!-- Account Actions -->
-{% if current_user.is_authenticated %}
-<div class="mb-4 d-flex justify-content-between align-items-center">
-    <div class="d-flex gap-2">
-        {% if current_user.is_driver %}
-            <form method="POST" action="/downgrade_to_passenger" style="display: inline;">
-                <button type="submit" class="btn btn-danger"
-                        onclick="return confirm('Are you sure? This will remove your vehicle and all its passengers.')">
-                    Can't Drive
-                </button>
-            </form>
-            <a href="/add_vehicle" class="btn btn-success">+ Add My Vehicle</a>
-        {% else %}
-            <a href="/upgrade_to_driver" class="btn btn-outline-primary">Become a Driver</a>
-        {% endif %}
+<!-- Account Actions - Hidden on mobile (shown after transportation list) -->
+<div class="account-actions-desktop">
+    {% if current_user.is_authenticated %}
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2">
+            {% if current_user.is_driver %}
+                <form method="POST" action="/downgrade_to_passenger" style="display: inline;">
+                    <button type="submit" class="btn btn-danger"
+                            onclick="return confirm('Are you sure? This will remove your vehicle and all its passengers.')">
+                        Can't Drive
+                    </button>
+                </form>
+                <a href="/add_vehicle" class="btn btn-success">+ Add My Vehicle</a>
+            {% else %}
+                <a href="/upgrade_to_driver" class="btn btn-outline-primary">Become a Driver</a>
+            {% endif %}
 
+            {% if current_user.is_admin %}
+                <a href="/admin_dashboard" class="btn btn-warning">Admin Dashboard</a>
+                <form method="POST" action="/demote_admin" style="display: inline;">
+                    <button type="submit" class="btn btn-outline-secondary"
+                            onclick="return confirm('Are you sure you want to remove admin privileges?')">
+                        Demote Admin
+                    </button>
+                </form>
+            {% endif %}
+        </div>
         {% if current_user.is_admin %}
-            <a href="/admin_dashboard" class="btn btn-warning">Admin Dashboard</a>
-            <form method="POST" action="/demote_admin" style="display: inline;">
-                <button type="submit" class="btn btn-outline-secondary"
-                        onclick="return confirm('Are you sure you want to remove admin privileges?')">
-                    Demote Admin
-                </button>
-            </form>
+            <span class="badge bg-danger fs-6">ADMIN</span>
         {% endif %}
     </div>
-    {% if current_user.is_admin %}
-        <span class="badge bg-danger fs-6">ADMIN</span>
+    {% else %}
+    <div class="alert alert-info mb-4">
+        <strong>Welcome!</strong> Please <a href="/login" class="alert-link">login</a> or <a href="/register" class="alert-link">register</a> to join a ride or become a driver.
+    </div>
     {% endif %}
 </div>
-{% else %}
-<div class="alert alert-info mb-4">
-    <strong>Welcome!</strong> Please <a href="/login" class="alert-link">login</a> or <a href="/register" class="alert-link">register</a> to join a ride or become a driver.
-</div>
-{% endif %}
 
 <!-- Check if user is already in a vehicle -->
 {% set user_current_vehicle = none %}
@@ -131,6 +133,55 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Account Actions - Mobile only (shown after transportation list) -->
+<div class="account-actions-mobile mt-4">
+    {% if current_user.is_authenticated %}
+    <div class="mb-4">
+        <div class="d-flex flex-column gap-2">
+            {% if current_user.is_driver %}
+                <a href="/add_vehicle" class="btn btn-success">+ Add My Vehicle</a>
+                <form method="POST" action="/downgrade_to_passenger" style="display: inline;">
+                    <button type="submit" class="btn btn-danger w-100"
+                            onclick="return confirm('Are you sure? This will remove your vehicle and all its passengers.')">
+                        Can't Drive
+                    </button>
+                </form>
+            {% else %}
+                <a href="/upgrade_to_driver" class="btn btn-outline-primary">Become a Driver</a>
+            {% endif %}
+
+            {% if current_user.is_admin %}
+                <a href="/admin_dashboard" class="btn btn-warning">Admin Dashboard</a>
+                <form method="POST" action="/demote_admin">
+                    <button type="submit" class="btn btn-outline-secondary w-100"
+                            onclick="return confirm('Are you sure you want to remove admin privileges?')">
+                        Demote Admin
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info mb-4">
+        <strong>Welcome!</strong> Please <a href="/login" class="alert-link">login</a> or <a href="/register" class="alert-link">register</a> to join a ride or become a driver.
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    /* Desktop: show actions above, hide mobile actions */
+    @media (min-width: 768px) {
+        .account-actions-desktop { display: block; }
+        .account-actions-mobile { display: none; }
+    }
+
+    /* Mobile: hide desktop actions, show mobile actions after list */
+    @media (max-width: 767px) {
+        .account-actions-desktop { display: none; }
+        .account-actions-mobile { display: block; }
+    }
+</style>
 
 <script>
     // Set today's date in headline

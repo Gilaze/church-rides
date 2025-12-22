@@ -4,41 +4,61 @@
 <style>
     @media (max-width: 767px) {
         .mobile-login-container {
-            min-height: 90vh !important;
+            min-height: 100vh !important;
             padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
         }
         .mobile-login-card {
-            width: 98vw !important;
+            width: 95vw !important;
             margin: 0 auto !important;
         }
+        .mobile-login-card .card {
+            min-height: 75vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+        }
         .mobile-login-card .card-header {
-            padding: 2.5rem !important;
+            padding: 3rem !important;
         }
         .mobile-login-card .card-body {
-            padding: 3rem 2.5rem !important;
+            padding: 3.5rem 2.5rem !important;
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
         }
         .mobile-login-card .form-label {
-            font-size: 1.375rem !important;
-            margin-bottom: 0.9rem !important;
+            font-size: 1.5rem !important;
+            margin-bottom: 1rem !important;
+            font-weight: 500 !important;
         }
         .mobile-login-card .form-control-lg {
-            font-size: 1.5625rem !important;
-            padding: 0.9375rem 1.25rem !important;
+            font-size: 1.75rem !important;
+            padding: 1.25rem 1.5rem !important;
             height: auto !important;
         }
         .mobile-login-card .btn-lg {
-            font-size: 1.625rem !important;
-            padding: 1.25rem !important;
+            font-size: 1.875rem !important;
+            padding: 1.5rem !important;
         }
         .mobile-login-card h4 {
-            font-size: 2.1875rem !important;
+            font-size: 2.5rem !important;
         }
         .mobile-login-card .form-check {
-            font-size: 1.375rem !important;
+            font-size: 1.5rem !important;
         }
         .mobile-login-card .form-check-input {
-            width: 1.875rem !important;
-            height: 1.875rem !important;
+            width: 2rem !important;
+            height: 2rem !important;
+        }
+        .mobile-login-card .card-footer {
+            padding: 2rem !important;
+            font-size: 1.25rem !important;
+        }
+        .mobile-login-card .mb-4 {
+            margin-bottom: 2rem !important;
         }
     }
 </style>
