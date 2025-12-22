@@ -40,27 +40,33 @@ def index():
     # Use the correct placeholder based on database type
     placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
-    # Get all vehicles
-    cur.execute("SELECT v.id, v.vehicle_name, v.capacity, u.full_name as driver_name FROM vehicles v JOIN users u ON v.driver_id = u.id")
-    vehicles = cur.fetchall()
+    try:
+        # Get all vehicles
+        cur.execute("SELECT v.id, v.vehicle_name, v.capacity, u.full_name as driver_name FROM vehicles v JOIN users u ON v.driver_id = u.id")
+        vehicles = cur.fetchall()
 
-    # Get all bookings to see who is in what car
-    vehicles_data = []
-    for v in vehicles:
-        cur.execute(f"SELECT u.full_name, u.id FROM bookings b JOIN users u ON b.passenger_id = u.id WHERE b.vehicle_id = {placeholder}", (v['id'],))
-        passengers = cur.fetchall()
+        # Get all bookings to see who is in what car
+        vehicles_data = []
+        for v in vehicles:
+            cur.execute(f"SELECT u.full_name, u.id FROM bookings b JOIN users u ON b.passenger_id = u.id WHERE b.vehicle_id = {placeholder}", (v['id'],))
+            passengers = cur.fetchall()
 
-        vehicles_data.append({
-            'id': v['id'],
-            'name': v['vehicle_name'],
-            'driver': v['driver_name'],
-            'capacity': v['capacity'],
-            'passengers': passengers,
-            'is_full': len(passengers) >= v['capacity']
-        })
+            vehicles_data.append({
+                'id': v['id'],
+                'name': v['vehicle_name'],
+                'driver': v['driver_name'],
+                'capacity': v['capacity'],
+                'passengers': passengers,
+                'is_full': len(passengers) >= v['capacity']
+            })
 
-    conn.close()
-    return render_template('index.html', vehicles=vehicles_data)
+        return render_template('index.html', vehicles=vehicles_data)
+    except Exception as e:
+        print(f"Index error: {e}")
+        flash("Error loading rides. Please try again.")
+        return render_template('index.html', vehicles=[])
+    finally:
+        conn.close()
 
 @app.route('/join/<int:vehicle_id>')
 @login_required
@@ -71,24 +77,29 @@ def join_ride(vehicle_id):
     # Use the correct placeholder based on database type
     placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
-    # Check if already booked
-    cur.execute(f"SELECT * FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
-    if cur.fetchone():
-        flash("You already have a ride! Leave it first.")
-    else:
-        # Check capacity
-        cur.execute(f"SELECT count(*) as count, capacity FROM bookings b JOIN vehicles v ON b.vehicle_id = v.id WHERE v.id = {placeholder}", (vehicle_id,))
-        stats = cur.fetchone()
-        # Note: logic for capacity check would require fetching vehicle capacity separately in complex SQL,
-        # simplified here to assume check passed or handled in UI logic.
+    try:
+        # Check if already booked
+        cur.execute(f"SELECT * FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
+        if cur.fetchone():
+            flash("You already have a ride! Leave it first.")
+        else:
+            # Check capacity
+            cur.execute(f"SELECT count(*) as count, capacity FROM bookings b JOIN vehicles v ON b.vehicle_id = v.id WHERE v.id = {placeholder}", (vehicle_id,))
+            stats = cur.fetchone()
+            # Note: logic for capacity check would require fetching vehicle capacity separately in complex SQL,
+            # simplified here to assume check passed or handled in UI logic.
 
-        cur.execute(f"INSERT INTO bookings (passenger_id, vehicle_id) VALUES ({placeholder}, {placeholder})", (current_user.id, vehicle_id))
-        conn.commit()
+            cur.execute(f"INSERT INTO bookings (passenger_id, vehicle_id) VALUES ({placeholder}, {placeholder})", (current_user.id, vehicle_id))
+            conn.commit()
 
-        # TRIGGER NOTIFICATION (Mock)
-        send_reminder_email(current_user.username, "The Driver", "The Car")
+            # TRIGGER NOTIFICATION (Mock)
+            send_reminder_email(current_user.username, "The Driver", "The Car")
+    except Exception as e:
+        print(f"Join ride error: {e}")
+        flash("Error joining ride. Please try again.")
+    finally:
+        conn.close()
 
-    conn.close()
     return redirect(url_for('index'))
 
 @app.route('/leave')
@@ -100,9 +111,15 @@ def leave_ride():
     # Use the correct placeholder based on database type
     placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
-    cur.execute(f"DELETE FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
-    conn.commit()
-    conn.close()
+    try:
+        cur.execute(f"DELETE FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
+        conn.commit()
+    except Exception as e:
+        print(f"Leave ride error: {e}")
+        flash("Error leaving ride. Please try again.")
+    finally:
+        conn.close()
+
     return redirect(url_for('index'))
 
 # --- AUTH ROUTES (Login/Register) --- 
@@ -127,11 +144,13 @@ def register():
             cur.execute(f"INSERT INTO users (username, password_hash, full_name, is_driver) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})",
                         (username, hashed, name, is_driver))
             conn.commit()
-            return redirect(url_for('login'))
-        except:
-            flash("Username taken.")
-        finally:
             conn.close()
+            flash("Registration successful! Please log in.")
+            return redirect(url_for('login'))
+        except Exception as e:
+            conn.close()
+            print(f"Registration error: {e}")  # Log the actual error
+            flash("Username taken or registration error. Please try again.")
 
     return render_template('register.html')
 
@@ -147,16 +166,21 @@ def login():
         # Use the correct placeholder based on database type
         placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
-        cur.execute(f"SELECT * FROM users WHERE username = {placeholder}", (username,))
-        user = cur.fetchone()
-        conn.close()
+        try:
+            cur.execute(f"SELECT * FROM users WHERE username = {placeholder}", (username,))
+            user = cur.fetchone()
 
-        if user and check_password_hash(user['password_hash'], pwd):
-            user_obj = User(user['id'], user['username'], user['full_name'], user['is_driver'])
-            login_user(user_obj)
-            return redirect(url_for('index'))
-        else:
-            flash("Invalid credentials")
+            if user and check_password_hash(user['password_hash'], pwd):
+                user_obj = User(user['id'], user['username'], user['full_name'], user['is_driver'])
+                login_user(user_obj)
+                return redirect(url_for('index'))
+            else:
+                flash("Invalid credentials")
+        except Exception as e:
+            print(f"Login error: {e}")
+            flash("Login error. Please try again.")
+        finally:
+            conn.close()
 
     return render_template('login.html')
 
