@@ -8,8 +8,14 @@
 
 <!-- Account Actions -->
 <div class="mb-4 d-flex justify-content-between align-items-center">
-    <div>
+    <div class="d-flex gap-2">
         {% if current_user.is_driver %}
+            <form method="POST" action="/downgrade_to_passenger" style="display: inline;">
+                <button type="submit" class="btn btn-danger"
+                        onclick="return confirm('Are you sure? This will remove your vehicle and all its passengers.')">
+                    Can't Drive
+                </button>
+            </form>
             <a href="/add_vehicle" class="btn btn-success">+ Add My Vehicle</a>
         {% else %}
             <a href="/upgrade_to_driver" class="btn btn-outline-primary">Become a Driver</a>

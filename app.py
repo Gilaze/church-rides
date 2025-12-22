@@ -84,20 +84,31 @@ def join_ride(vehicle_id):
         if cur.fetchone():
             flash("You already have a ride! Leave it first.")
         else:
-            # Check capacity
-            cur.execute(f"SELECT count(*) as count, capacity FROM bookings b JOIN vehicles v ON b.vehicle_id = v.id WHERE v.id = {placeholder}", (vehicle_id,))
-            stats = cur.fetchone()
-            # Note: logic for capacity check would require fetching vehicle capacity separately in complex SQL,
-            # simplified here to assume check passed or handled in UI logic.
+            # Check capacity of the vehicle
+            cur.execute(f"SELECT capacity FROM vehicles WHERE id = {placeholder}", (vehicle_id,))
+            vehicle = cur.fetchone()
 
-            cur.execute(f"INSERT INTO bookings (passenger_id, vehicle_id) VALUES ({placeholder}, {placeholder})", (current_user.id, vehicle_id))
-            conn.commit()
+            if not vehicle:
+                flash("Vehicle not found.")
+                return redirect(url_for('index'))
 
-            # TRIGGER NOTIFICATION (Mock)
-            send_reminder_email(current_user.username, "The Driver", "The Car")
+            # Count current passengers
+            cur.execute(f"SELECT COUNT(*) as count FROM bookings WHERE vehicle_id = {placeholder}", (vehicle_id,))
+            count_result = cur.fetchone()
+            current_count = count_result['count'] if count_result else 0
+
+            if current_count >= vehicle['capacity']:
+                flash("This vehicle is full.")
+            else:
+                cur.execute(f"INSERT INTO bookings (passenger_id, vehicle_id) VALUES ({placeholder}, {placeholder})", (current_user.id, vehicle_id))
+                conn.commit()
+                flash("You've been added to the ride!")
+
+                # TRIGGER NOTIFICATION (Mock)
+                send_reminder_email(current_user.username, "The Driver", "The Car")
     except Exception as e:
         print(f"Join ride error: {e}")
-        flash("Error joining ride. Please try again.")
+        flash(f"Error joining ride: {str(e)}")
     finally:
         conn.close()
 
@@ -336,6 +347,45 @@ def upgrade_to_driver():
             conn.close()
 
     return render_template('upgrade_to_driver.html')
+
+@app.route('/downgrade_to_passenger', methods=['POST'])
+@login_required
+def downgrade_to_passenger():
+    if not current_user.is_driver:
+        flash("You are already a passenger.")
+        return redirect(url_for('index'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+    try:
+        # First, find and delete any vehicle owned by this driver
+        cur.execute(f"SELECT id FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+        vehicle = cur.fetchone()
+
+        if vehicle:
+            # Delete all bookings for this vehicle
+            cur.execute(f"DELETE FROM bookings WHERE vehicle_id = {placeholder}", (vehicle['id'],))
+            # Delete the vehicle
+            cur.execute(f"DELETE FROM vehicles WHERE id = {placeholder}", (vehicle['id'],))
+
+        # Update user to passenger
+        cur.execute(f"UPDATE users SET is_driver = {placeholder} WHERE id = {placeholder}",
+                    (False, current_user.id))
+        conn.commit()
+
+        # Update current_user object
+        current_user.is_driver = False
+
+        flash("You are now a passenger. Your vehicle has been removed.")
+    except Exception as e:
+        print(f"Downgrade to passenger error: {e}")
+        flash("Error changing account status. Please try again.")
+    finally:
+        conn.close()
+
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     # Initialize DB tables if they don't exist
