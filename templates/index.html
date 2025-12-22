@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h2>Sunday Service Transport</h2>
+    <h4 class="text-muted" id="date-display"></h4>
+</div>
+
+{% if current_user.is_driver %}
+<div class="mb-4">
+    <button class="btn btn-success"> + Register My Vehicle</button>
+</div>
+{% endif %}
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for car in vehicles %}
+    <div class="col">
+        <div class="vehicle-card {% if car.is_full %}full-capacity{% endif %}">
+            <div class="driver-header">
+                <h5>{{ car.name }}</h5>
+                <small>Driver: {{ car.driver }}</small>
+                <span class="badge bg-secondary float-end">{{ car.passengers|length }} / {{ car.capacity }}</span>
+            </div>
+
+            <ul class="list-group list-group-flush mt-3 mb-3">
+                {% for person in car.passengers %}
+                    <li class="list-group-item">
+                        {{ person.full_name }}
+                        {% if person.id == current_user.id %}
+                            <span class="badge bg-success">YOU</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% set in_this_car = false %}
+            {% for person in car.passengers %}
+                {% if person.id == current_user.id %}
+                    {% set in_this_car = true %}
+                {% endif %}
+            {% endfor %}
+
+            {% if in_this_car %}
+                <a href="/leave" class="btn btn-danger w-100">Remove Me</a>
+            {% elif not car.is_full %}
+                <a href="/join/{{ car.id }}" class="btn btn-primary w-100">Add Attendee</a>
+            {% else %}
+                <button class="btn btn-secondary w-100" disabled>Full</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    // Set today's date in headline
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById("date-display").innerText = new Date().toLocaleDateString("en-US", options);
+</script>
+{% endblock %}
