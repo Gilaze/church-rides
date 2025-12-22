@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           # Fallback: ensures these specific libs exist even if requirements.txt is missing them
-          pip install sqlalchemy psycopg2-binary pytz
+          pip install psycopg2-binary pytz
 
       - name: Run Reset Script
         env:
