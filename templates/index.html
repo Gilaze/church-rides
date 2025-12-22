@@ -7,6 +7,7 @@
 </div>
 
 <!-- Account Actions -->
+{% if current_user.is_authenticated %}
 <div class="mb-4 d-flex justify-content-between align-items-center">
     <div class="d-flex gap-2">
         {% if current_user.is_driver %}
@@ -25,16 +26,23 @@
         <span class="badge bg-danger fs-6">ADMIN</span>
     {% endif %}
 </div>
+{% else %}
+<div class="alert alert-info mb-4">
+    <strong>Welcome!</strong> Please <a href="/login" class="alert-link">login</a> or <a href="/register" class="alert-link">register</a> to join a ride or become a driver.
+</div>
+{% endif %}
 
 <!-- Check if user is already in a vehicle -->
 {% set user_current_vehicle = none %}
-{% for car in vehicles %}
-    {% for person in car.passengers %}
-        {% if person.id == current_user.id %}
-            {% set user_current_vehicle = car.id %}
-        {% endif %}
+{% if current_user.is_authenticated %}
+    {% for car in vehicles %}
+        {% for person in car.passengers %}
+            {% if person.id == current_user.id %}
+                {% set user_current_vehicle = car.id %}
+            {% endif %}
+        {% endfor %}
     {% endfor %}
-{% endfor %}
+{% endif %}
 
 <div class="row row-cols-1 row-cols-md-3 g-4">
     {% for car in vehicles %}
@@ -46,7 +54,7 @@
                     <small>Driver: {{ car.driver }}</small>
                     <span class="badge bg-secondary">{{ car.passengers|length }} / {{ car.capacity }}</span>
                 </div>
-                {% if car.driver_id == current_user.id or current_user.is_admin %}
+                {% if current_user.is_authenticated and (car.driver_id == current_user.id or current_user.is_admin) %}
                     <a href="/remove_vehicle/{{ car.id }}" class="btn btn-sm btn-outline-danger"
                        onclick="return confirm('Are you sure you want to remove this vehicle?')">
                         ✕
@@ -59,11 +67,11 @@
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <span>
                             {{ person.full_name }}
-                            {% if person.id == current_user.id %}
+                            {% if current_user.is_authenticated and person.id == current_user.id %}
                                 <span class="badge bg-success">YOU</span>
                             {% endif %}
                         </span>
-                        {% if current_user.is_admin or person.id == current_user.id %}
+                        {% if current_user.is_authenticated and (current_user.is_admin or person.id == current_user.id) %}
                             <a href="/remove_passenger/{{ car.id }}/{{ person.id }}"
                                class="btn btn-sm btn-danger"
                                style="width: 25px; height: 25px; padding: 0; line-height: 23px;">
@@ -82,16 +90,25 @@
                 {% endif %}
             {% endfor %}
 
-            {% if user_current_vehicle == none and not car.is_full %}
-                <!-- User not in any vehicle - show +add button if space available -->
-                <a href="/join/{{ car.id }}" class="btn btn-primary w-100">+ Add</a>
-            {% elif user_current_vehicle == car.id %}
-                <!-- User is in this vehicle - show remove button (handled above in passenger list) -->
-            {% elif car.is_full %}
-                <button class="btn btn-secondary w-100" disabled>Full</button>
+            {% if current_user.is_authenticated %}
+                {% if user_current_vehicle == none and not car.is_full %}
+                    <!-- User not in any vehicle - show +add button if space available -->
+                    <a href="/join/{{ car.id }}" class="btn btn-primary w-100">+ Add</a>
+                {% elif user_current_vehicle == car.id %}
+                    <!-- User is in this vehicle - show remove button (handled above in passenger list) -->
+                {% elif car.is_full %}
+                    <button class="btn btn-secondary w-100" disabled>Full</button>
+                {% else %}
+                    <!-- User is in another vehicle - don't show button -->
+                    <button class="btn btn-secondary w-100" disabled>Already Booked</button>
+                {% endif %}
             {% else %}
-                <!-- User is in another vehicle - don't show button -->
-                <button class="btn btn-secondary w-100" disabled>Already Booked</button>
+                <!-- Guest user - show login prompt -->
+                {% if car.is_full %}
+                    <button class="btn btn-secondary w-100" disabled>Full</button>
+                {% else %}
+                    <a href="/login" class="btn btn-outline-primary w-100">Login to Join</a>
+                {% endif %}
             {% endif %}
         </div>
     </div>

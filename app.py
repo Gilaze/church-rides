@@ -32,7 +32,6 @@ def load_user(user_id):
 # --- ROUTES ---
 
 @app.route('/')
-@login_required
 def index():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -198,7 +197,8 @@ def login():
 
             if user and check_password_hash(user['password_hash'], pwd):
                 user_obj = User(user['id'], user['username'], user['full_name'], user['is_driver'], user.get('is_admin', False))
-                login_user(user_obj)
+                remember = 'remember' in request.form
+                login_user(user_obj, remember=remember)
                 return redirect(url_for('index'))
             else:
                 flash("Invalid credentials")
