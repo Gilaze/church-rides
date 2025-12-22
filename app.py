@@ -1,7 +1,8 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from db import get_db_connection, init_db # <--- Make sure init_db is imported
+from db import get_db_connection, init_db
 from models import User
 from notifications import send_reminder_email
 
@@ -11,13 +12,31 @@ try:
     print("Initializing Database...")
     init_db()
     print("Database Initialized!")
+
+    # ONE-TIME MIGRATION: Add remember_vehicle column to production
+    # TODO: Remove this block after successful deployment
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name='vehicles' AND column_name='remember_vehicle';
+        """)
+        if not cur.fetchone():
+            print("Running migration: Adding remember_vehicle column...")
+            cur.execute("ALTER TABLE vehicles ADD COLUMN remember_vehicle BOOLEAN DEFAULT FALSE;")
+            conn.commit()
+            print("✓ Migration completed!")
+        cur.close()
+        conn.close()
 except Exception as e:
-    print(f"Error creating tables: {e}")
+    print(f"Error during initialization/migration: {e}")
 # --- NEW CODE BLOCK END ---
 
 app = Flask(__name__)
-
-import os # Make sure you have this import at the top
 app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313')
 
 # Setup Login Manager
