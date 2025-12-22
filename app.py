@@ -141,6 +141,7 @@ def register():
         username = request.form['username']
         pwd = request.form['password']
         name = request.form['full_name']
+        grade = request.form['grade']
         is_driver = 'is_driver' in request.form
 
         hashed = generate_password_hash(pwd)
@@ -152,8 +153,8 @@ def register():
         placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
         try:
-            cur.execute(f"INSERT INTO users (username, password_hash, full_name, is_driver) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})",
-                        (username, hashed, name, is_driver))
+            cur.execute(f"INSERT INTO users (username, password_hash, full_name, grade, is_driver) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
+                        (username, hashed, name, grade, is_driver))
             conn.commit()
 
             # If user is a driver and provided vehicle info, create vehicle
@@ -184,6 +185,8 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         pwd = request.form['password']
+        login_admin = 'login_admin' in request.form
+        admin_key = request.form.get('admin_key', '')
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -196,7 +199,20 @@ def login():
             user = cur.fetchone()
 
             if user and check_password_hash(user['password_hash'], pwd):
-                user_obj = User(user['id'], user['username'], user['full_name'], user['is_driver'], user.get('is_admin', False))
+                # Check if trying to login as admin
+                is_admin = False
+                if login_admin:
+                    if admin_key == 'berkeley':
+                        is_admin = True
+                        # Update user's admin status in database
+                        cur.execute(f"UPDATE users SET is_admin = {placeholder} WHERE id = {placeholder}",
+                                    (True, user['id']))
+                        conn.commit()
+                    else:
+                        flash("Invalid admin key")
+                        return redirect(url_for('login'))
+
+                user_obj = User(user['id'], user['username'], user['full_name'], user['is_driver'], is_admin or user.get('is_admin', False))
                 remember = 'remember' in request.form
                 login_user(user_obj, remember=remember)
                 return redirect(url_for('index'))
@@ -214,6 +230,38 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+@app.route('/admin_dashboard')
+@login_required
+def admin_dashboard():
+    if not current_user.is_admin:
+        flash("Admin access required.")
+        return redirect(url_for('index'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+    try:
+        # Get all passengers (non-drivers)
+        cur.execute(f"SELECT full_name, grade FROM users WHERE is_driver = {placeholder} OR is_driver IS NULL", (False,))
+        passengers = cur.fetchall()
+
+        # Get all drivers
+        cur.execute(f"SELECT full_name, grade FROM users WHERE is_driver = {placeholder}", (True,))
+        drivers = cur.fetchall()
+
+        # Get all vehicles
+        cur.execute("SELECT vehicle_name, capacity FROM vehicles")
+        vehicles = cur.fetchall()
+
+        return render_template('admin_dashboard.html', passengers=passengers, drivers=drivers, vehicles=vehicles)
+    except Exception as e:
+        print(f"Admin dashboard error: {e}")
+        flash("Error loading admin dashboard.")
+        return redirect(url_for('index'))
+    finally:
+        conn.close()
 
 # --- VEHICLE MANAGEMENT ROUTES ---
 
@@ -382,6 +430,92 @@ def downgrade_to_passenger():
     except Exception as e:
         print(f"Downgrade to passenger error: {e}")
         flash("Error changing account status. Please try again.")
+    finally:
+        conn.close()
+
+    return redirect(url_for('index'))
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+    if request.method == 'POST':
+        full_name = request.form['full_name']
+        username = request.form['username']
+        grade = request.form['grade']
+
+        try:
+            # Update user information
+            cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder} WHERE id = {placeholder}",
+                        (full_name, username, grade, current_user.id))
+            conn.commit()
+
+            # Update vehicle if user is a driver
+            if current_user.is_driver and request.form.get('vehicle_name') and request.form.get('capacity'):
+                vehicle_name = request.form['vehicle_name']
+                capacity = int(request.form['capacity'])
+
+                cur.execute(f"UPDATE vehicles SET vehicle_name = {placeholder}, capacity = {placeholder} WHERE driver_id = {placeholder}",
+                            (vehicle_name, capacity, current_user.id))
+                conn.commit()
+
+            # Update current_user object
+            current_user.full_name = full_name
+            current_user.username = username
+
+            flash("Profile updated successfully!")
+            return redirect(url_for('profile'))
+        except Exception as e:
+            print(f"Profile update error: {e}")
+            flash("Error updating profile. Username may already be taken.")
+        finally:
+            conn.close()
+
+    # GET request - fetch user data
+    try:
+        cur.execute(f"SELECT username, grade FROM users WHERE id = {placeholder}", (current_user.id,))
+        user_data = cur.fetchone()
+
+        vehicle_data = None
+        if current_user.is_driver:
+            cur.execute(f"SELECT vehicle_name, capacity FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+            vehicle_data = cur.fetchone()
+
+        return render_template('profile.html', user_data=user_data, vehicle_data=vehicle_data)
+    except Exception as e:
+        print(f"Profile load error: {e}")
+        flash("Error loading profile.")
+        return redirect(url_for('index'))
+    finally:
+        conn.close()
+
+@app.route('/demote_admin', methods=['POST'])
+@login_required
+def demote_admin():
+    if not current_user.is_admin:
+        flash("You are not an admin.")
+        return redirect(url_for('index'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+    try:
+        # Update user to non-admin
+        cur.execute(f"UPDATE users SET is_admin = {placeholder} WHERE id = {placeholder}",
+                    (False, current_user.id))
+        conn.commit()
+
+        # Update current_user object
+        current_user.is_admin = False
+
+        flash("Admin privileges removed.")
+    except Exception as e:
+        print(f"Demote admin error: {e}")
+        flash("Error removing admin privileges. Please try again.")
     finally:
         conn.close()
 

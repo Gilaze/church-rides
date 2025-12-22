@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-11 col-sm-10 col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center py-4">
+                <h4 class="mb-0">My Profile</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="full_name" class="form-control" value="{{ current_user.full_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" value="{{ user_data.username }}" required>
+                        <small class="form-text text-muted">Changing username may affect your login</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grade <small class="text-muted">(numerical preferred)</small></label>
+                        <input type="text" name="grade" class="form-control" value="{{ user_data.grade }}" required>
+                    </div>
+
+                    {% if current_user.is_driver and vehicle_data %}
+                    <div class="mb-3">
+                        <label class="form-label">Vehicle Name</label>
+                        <input type="text" name="vehicle_name" class="form-control" value="{{ vehicle_data.vehicle_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vehicle Capacity</label>
+                        <input type="number" name="capacity" class="form-control" value="{{ vehicle_data.capacity }}" min="1" max="20" required>
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary w-100 mb-3">Update Profile</button>
+                    <a href="/" class="btn btn-secondary w-100">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

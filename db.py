@@ -30,6 +30,7 @@ def init_db():
             username VARCHAR(50) UNIQUE NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
             full_name VARCHAR(100) NOT NULL,
+            grade VARCHAR(20),
             is_driver BOOLEAN DEFAULT FALSE,
             is_admin BOOLEAN DEFAULT FALSE,
             phone_number VARCHAR(20)
@@ -60,6 +61,7 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             full_name TEXT NOT NULL,
+            grade TEXT,
             is_driver INTEGER DEFAULT 0,
             is_admin INTEGER DEFAULT 0,
             phone_number TEXT

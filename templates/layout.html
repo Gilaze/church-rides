@@ -18,7 +18,10 @@
             <div class="d-flex align-items-center">
                 {% if current_user.is_authenticated %}
                     <span class="navbar-text text-white me-3">Hello, {{ current_user.full_name }}</span>
-                    <a href="/logout" class="btn btn-sm btn-light">Logout</a>
+                    <a href="/logout" class="btn btn-sm btn-light me-2">Logout</a>
+                    <a href="/profile" class="d-inline-block" style="line-height: 0;">
+                        <img src="{{ url_for('static', filename='pfp.svg') }}" alt="Profile" style="width: 32px; height: 32px; cursor: pointer;">
+                    </a>
                 {% else %}
                     <a href="/login" class="btn btn-sm btn-light me-2">Login</a>
                     <a href="/register" class="btn btn-sm btn-outline-light">Register</a>

@@ -22,6 +22,16 @@
         {% else %}
             <a href="/upgrade_to_driver" class="btn btn-outline-primary">Become a Driver</a>
         {% endif %}
+
+        {% if current_user.is_admin %}
+            <a href="/admin_dashboard" class="btn btn-warning">Admin Dashboard</a>
+            <form method="POST" action="/demote_admin" style="display: inline;">
+                <button type="submit" class="btn btn-outline-secondary"
+                        onclick="return confirm('Are you sure you want to remove admin privileges?')">
+                    Demote Admin
+                </button>
+            </form>
+        {% endif %}
     </div>
     {% if current_user.is_admin %}
         <span class="badge bg-danger fs-6">ADMIN</span>
