@@ -16,7 +16,9 @@ except Exception as e:
 # --- NEW CODE BLOCK END ---
 
 app = Flask(__name__)
-app.secret_key = 'change_this_to_something_secret'
+
+import os # Make sure you have this import at the top
+app.secret_key = os.environ.get('f557d923d5679644c2b94cd0ad194313', 'dev_key_for_laptop_only')
 
 # Setup Login Manager
 login_manager = LoginManager()
