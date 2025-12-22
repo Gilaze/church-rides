@@ -18,41 +18,68 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Users Table (Credentials & Info)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(50) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
-        full_name VARCHAR(100) NOT NULL,
-        is_driver BOOLEAN DEFAULT FALSE,
-        phone_number VARCHAR(20) -- For reminders
-    );
-    """) # Note: In SQLite, 'SERIAL' might fail, simplified for hybrid compatibility below:
-    
-    # Vehicles Table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS vehicles (
-        id SERIAL PRIMARY KEY,
-        driver_id INTEGER REFERENCES users(id),
-        vehicle_name VARCHAR(50),
-        capacity INTEGER
-    );
-    """)
 
-    # Bookings/Rides Table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS bookings (
-        id SERIAL PRIMARY KEY,
-        passenger_id INTEGER UNIQUE REFERENCES users(id),
-        vehicle_id INTEGER REFERENCES vehicles(id)
-    );
-    """)
-    
+    # Determine if we're using PostgreSQL or SQLite
+    is_postgres = os.environ.get('DATABASE_URL') is not None
+
+    if is_postgres:
+        # PostgreSQL syntax
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(50) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            full_name VARCHAR(100) NOT NULL,
+            is_driver BOOLEAN DEFAULT FALSE,
+            phone_number VARCHAR(20)
+        );
+        """)
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS vehicles (
+            id SERIAL PRIMARY KEY,
+            driver_id INTEGER REFERENCES users(id),
+            vehicle_name VARCHAR(50),
+            capacity INTEGER
+        );
+        """)
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bookings (
+            id SERIAL PRIMARY KEY,
+            passenger_id INTEGER UNIQUE REFERENCES users(id),
+            vehicle_id INTEGER REFERENCES vehicles(id)
+        );
+        """)
+    else:
+        # SQLite syntax
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            full_name TEXT NOT NULL,
+            is_driver INTEGER DEFAULT 0,
+            phone_number TEXT
+        );
+        """)
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS vehicles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            driver_id INTEGER REFERENCES users(id),
+            vehicle_name TEXT,
+            capacity INTEGER
+        );
+        """)
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            passenger_id INTEGER UNIQUE REFERENCES users(id),
+            vehicle_id INTEGER REFERENCES vehicles(id)
+        );
+        """)
+
     conn.commit()
     conn.close()
-
-# Note: For SQLite compatibility, you might need to run the specific SQLite CREATE statements 
-# from our previous chat manually once, as 'SERIAL' is PostgreSQL specific. 
-# For this code to run smoothly on your laptop, use 'INTEGER PRIMARY KEY AUTOINCREMENT' for IDs.

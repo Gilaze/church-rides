@@ -12,9 +12,12 @@ class User(UserMixin):
     def get(user_id):
         conn = get_db_connection()
         cur = conn.cursor()
-        # Handle SQLite vs Postgres placeholder syntax (? vs %s)
-        # This example assumes SQLite syntax for local simplicity
-        cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+
+        # Use the correct placeholder based on database type
+        import os
+        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+        cur.execute(f"SELECT * FROM users WHERE id = {placeholder}", (user_id,))
         user_data = cur.fetchone()
         conn.close()
         if not user_data:
@@ -33,7 +36,11 @@ class Driver(User):
     def add_vehicle(self, vehicle_name, capacity):
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("INSERT INTO vehicles (driver_id, vehicle_name, capacity) VALUES (?, ?, ?)",
+
+        import os
+        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+        cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, capacity) VALUES ({placeholder}, {placeholder}, {placeholder})",
                     (self.id, vehicle_name, capacity))
         conn.commit()
         conn.close()

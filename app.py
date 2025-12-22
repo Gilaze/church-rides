@@ -18,7 +18,7 @@ except Exception as e:
 app = Flask(__name__)
 
 import os # Make sure you have this import at the top
-app.secret_key = os.environ.get('f557d923d5679644c2b94cd0ad194313', 'dev_key_for_laptop_only')
+app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313')
 
 # Setup Login Manager
 login_manager = LoginManager()
@@ -36,17 +36,20 @@ def load_user(user_id):
 def index():
     conn = get_db_connection()
     cur = conn.cursor()
-    
+
+    # Use the correct placeholder based on database type
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
     # Get all vehicles
     cur.execute("SELECT v.id, v.vehicle_name, v.capacity, u.full_name as driver_name FROM vehicles v JOIN users u ON v.driver_id = u.id")
     vehicles = cur.fetchall()
-    
+
     # Get all bookings to see who is in what car
     vehicles_data = []
     for v in vehicles:
-        cur.execute("SELECT u.full_name, u.id FROM bookings b JOIN users u ON b.passenger_id = u.id WHERE b.vehicle_id = ?", (v['id'],))
+        cur.execute(f"SELECT u.full_name, u.id FROM bookings b JOIN users u ON b.passenger_id = u.id WHERE b.vehicle_id = {placeholder}", (v['id'],))
         passengers = cur.fetchall()
-        
+
         vehicles_data.append({
             'id': v['id'],
             'name': v['vehicle_name'],
@@ -55,7 +58,7 @@ def index():
             'passengers': passengers,
             'is_full': len(passengers) >= v['capacity']
         })
-    
+
     conn.close()
     return render_template('index.html', vehicles=vehicles_data)
 
@@ -64,24 +67,27 @@ def index():
 def join_ride(vehicle_id):
     conn = get_db_connection()
     cur = conn.cursor()
-    
+
+    # Use the correct placeholder based on database type
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
     # Check if already booked
-    cur.execute("SELECT * FROM bookings WHERE passenger_id = ?", (current_user.id,))
+    cur.execute(f"SELECT * FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
     if cur.fetchone():
         flash("You already have a ride! Leave it first.")
     else:
         # Check capacity
-        cur.execute("SELECT count(*) as count, capacity FROM bookings b JOIN vehicles v ON b.vehicle_id = v.id WHERE v.id = ?", (vehicle_id,))
+        cur.execute(f"SELECT count(*) as count, capacity FROM bookings b JOIN vehicles v ON b.vehicle_id = v.id WHERE v.id = {placeholder}", (vehicle_id,))
         stats = cur.fetchone()
-        # Note: logic for capacity check would require fetching vehicle capacity separately in complex SQL, 
+        # Note: logic for capacity check would require fetching vehicle capacity separately in complex SQL,
         # simplified here to assume check passed or handled in UI logic.
-        
-        cur.execute("INSERT INTO bookings (passenger_id, vehicle_id) VALUES (?, ?)", (current_user.id, vehicle_id))
+
+        cur.execute(f"INSERT INTO bookings (passenger_id, vehicle_id) VALUES ({placeholder}, {placeholder})", (current_user.id, vehicle_id))
         conn.commit()
-        
+
         # TRIGGER NOTIFICATION (Mock)
         send_reminder_email(current_user.username, "The Driver", "The Car")
-        
+
     conn.close()
     return redirect(url_for('index'))
 
@@ -90,7 +96,11 @@ def join_ride(vehicle_id):
 def leave_ride():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("DELETE FROM bookings WHERE passenger_id = ?", (current_user.id,))
+
+    # Use the correct placeholder based on database type
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+    cur.execute(f"DELETE FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
     conn.commit()
     conn.close()
     return redirect(url_for('index'))
@@ -104,13 +114,17 @@ def register():
         pwd = request.form['password']
         name = request.form['full_name']
         is_driver = 'is_driver' in request.form
-        
+
         hashed = generate_password_hash(pwd)
-        
+
         conn = get_db_connection()
         cur = conn.cursor()
+
+        # Use the correct placeholder based on database type
+        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
         try:
-            cur.execute("INSERT INTO users (username, password_hash, full_name, is_driver) VALUES (?, ?, ?, ?)",
+            cur.execute(f"INSERT INTO users (username, password_hash, full_name, is_driver) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})",
                         (username, hashed, name, is_driver))
             conn.commit()
             return redirect(url_for('login'))
@@ -118,7 +132,7 @@ def register():
             flash("Username taken.")
         finally:
             conn.close()
-            
+
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -126,20 +140,24 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         pwd = request.form['password']
-        
+
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+
+        # Use the correct placeholder based on database type
+        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+        cur.execute(f"SELECT * FROM users WHERE username = {placeholder}", (username,))
         user = cur.fetchone()
         conn.close()
-        
+
         if user and check_password_hash(user['password_hash'], pwd):
             user_obj = User(user['id'], user['username'], user['full_name'], user['is_driver'])
             login_user(user_obj)
             return redirect(url_for('index'))
         else:
             flash("Invalid credentials")
-            
+
     return render_template('login.html')
 
 @app.route('/logout')
