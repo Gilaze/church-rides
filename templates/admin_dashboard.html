@@ -78,7 +78,7 @@
                         <tr>
                             <th>Vehicle Name</th>
                             <th>Driver</th>
-                            <th>Driver Capacity</th>
+                            <th>Capacity</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -86,13 +86,48 @@
                         <tr>
                             <td>{{ vehicle.vehicle_name }}</td>
                             <td>{{ vehicle.driver_name }}</td>
-                            <td>{{ vehicle.driver_capacity }}</td>
+                            <td>{{ vehicle.driver_occupied }} / {{ vehicle.driver_capacity }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
                 {% if vehicles|length == 0 %}
                     <p class="text-muted text-center">No vehicles yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">All Users</h5>
+            </div>
+            <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Full Name</th>
+                            <th>Username</th>
+                            <th>Grade</th>
+                            <th>Residence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in all_users %}
+                        <tr>
+                            <td>{{ user.full_name }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.grade }}</td>
+                            <td>{{ user.residence }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if all_users|length == 0 %}
+                    <p class="text-muted text-center">No users yet.</p>
                 {% endif %}
             </div>
         </div>

@@ -4,7 +4,6 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db_connection, init_db
 from models import User
-from notifications import send_reminder_email
 
 # --- NEW CODE BLOCK START ---
 # Run this immediately when the app loads, so tables are created on Leapcell
@@ -13,50 +12,6 @@ try:
     init_db()
     print("Database Initialized!")
 
-    # ONE-TIME MIGRATION: Move capacity from vehicles to users
-    # TODO: Remove this block after successful deployment
-    import psycopg2
-    from psycopg2.extras import RealDictCursor
-    database_url = os.environ.get('DATABASE_URL')
-    if database_url:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
-        cur = conn.cursor()
-
-        # Add driver_capacity column to users if it doesn't exist
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name='users' AND column_name='driver_capacity';
-        """)
-        if not cur.fetchone():
-            print("Running migration: Adding driver_capacity column to users...")
-            cur.execute("ALTER TABLE users ADD COLUMN driver_capacity INTEGER;")
-
-            # Migrate existing data
-            cur.execute("""
-                UPDATE users
-                SET driver_capacity = (
-                    SELECT COALESCE(MAX(capacity), 0)
-                    FROM vehicles
-                    WHERE vehicles.driver_id = users.id
-                )
-                WHERE is_driver = TRUE;
-            """)
-            conn.commit()
-            print("✓ Driver capacity migration completed!")
-
-        # Remove capacity column from vehicles if it exists
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name='vehicles' AND column_name='capacity';
-        """)
-        if cur.fetchone():
-            print("Running migration: Removing capacity column from vehicles...")
-            cur.execute("ALTER TABLE vehicles DROP COLUMN capacity;")
-            conn.commit()
-            print("✓ Vehicle capacity column removed!")
-
-        cur.close()
-        conn.close()
 except Exception as e:
     print(f"Error during initialization/migration: {e}")
 # --- NEW CODE BLOCK END ---
@@ -168,9 +123,6 @@ def join_ride(vehicle_id):
                 cur.execute(f"INSERT INTO bookings (passenger_id, vehicle_id) VALUES ({placeholder}, {placeholder})", (current_user.id, vehicle_id))
                 conn.commit()
                 flash("You've been added to the ride!")
-
-                # TRIGGER NOTIFICATION (Mock)
-                send_reminder_email(current_user.username, "The Driver", "The Car")
     except Exception as e:
         print(f"Join ride error: {e}")
         flash(f"Error joining ride: {str(e)}")
@@ -208,6 +160,7 @@ def register():
         pwd = request.form['password']
         name = request.form['full_name']
         grade = request.form['grade']
+        residence = request.form['residence']
         is_driver = 'is_driver' in request.form
         register_as_admin = 'register_as_admin' in request.form
 
@@ -232,8 +185,8 @@ def register():
             if is_driver and request.form.get('driver_capacity'):
                 driver_capacity = int(request.form['driver_capacity'])
 
-            cur.execute(f"INSERT INTO users (username, password_hash, full_name, grade, is_driver, is_admin, driver_capacity) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
-                        (username, hashed, name, grade, is_driver, register_as_admin, driver_capacity))
+            cur.execute(f"INSERT INTO users (username, password_hash, full_name, grade, residence, is_driver, is_admin, driver_capacity) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
+                        (username, hashed, name, grade, residence, is_driver, register_as_admin, driver_capacity))
             conn.commit()
 
             # If user is a driver and provided vehicle info, create vehicle
@@ -317,11 +270,39 @@ def admin_dashboard():
         cur.execute(f"SELECT full_name, grade FROM users WHERE is_driver = {placeholder}", (True,))
         drivers = cur.fetchall()
 
-        # Get all vehicles with driver info
-        cur.execute("SELECT v.vehicle_name, u.full_name as driver_name, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id")
-        vehicles = cur.fetchall()
+        # Get all users
+        cur.execute("SELECT full_name, username, grade, residence FROM users ORDER BY full_name")
+        all_users = cur.fetchall()
 
-        return render_template('admin_dashboard.html', passengers=passengers, drivers=drivers, vehicles=vehicles)
+        # Get all vehicles with driver info and calculate occupied capacity
+        cur.execute("SELECT v.vehicle_name, v.driver_id, u.full_name as driver_name, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id")
+        vehicles_raw = cur.fetchall()
+
+        # Calculate occupied capacity for each driver
+        driver_occupied = {}
+        for vehicle in vehicles_raw:
+            driver_id = vehicle['driver_id']
+            if driver_id not in driver_occupied:
+                # Count total passengers for this driver across all vehicles
+                cur.execute(f"""
+                    SELECT COUNT(*) as count FROM bookings b
+                    JOIN vehicles v ON b.vehicle_id = v.id
+                    WHERE v.driver_id = {placeholder}
+                """, (driver_id,))
+                count_result = cur.fetchone()
+                driver_occupied[driver_id] = count_result['count'] if count_result else 0
+
+        # Add occupied capacity to each vehicle
+        vehicles = []
+        for vehicle in vehicles_raw:
+            vehicles.append({
+                'vehicle_name': vehicle['vehicle_name'],
+                'driver_name': vehicle['driver_name'],
+                'driver_capacity': vehicle['driver_capacity'],
+                'driver_occupied': driver_occupied.get(vehicle['driver_id'], 0)
+            })
+
+        return render_template('admin_dashboard.html', passengers=passengers, drivers=drivers, vehicles=vehicles, all_users=all_users)
     except Exception as e:
         print(f"Admin dashboard error: {e}")
         flash("Error loading admin dashboard.")
@@ -538,6 +519,7 @@ def profile():
         full_name = request.form['full_name']
         username = request.form['username']
         grade = request.form['grade']
+        residence = request.form['residence']
         password = request.form.get('password', '').strip()
 
         try:
@@ -550,12 +532,12 @@ def profile():
             if password:
                 # Update with new password
                 hashed = generate_password_hash(password)
-                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, driver_capacity = {placeholder}, password_hash = {placeholder} WHERE id = {placeholder}",
-                            (full_name, username, grade, driver_capacity, hashed, current_user.id))
+                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, residence = {placeholder}, driver_capacity = {placeholder}, password_hash = {placeholder} WHERE id = {placeholder}",
+                            (full_name, username, grade, residence, driver_capacity, hashed, current_user.id))
             else:
                 # Update without changing password
-                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, driver_capacity = {placeholder} WHERE id = {placeholder}",
-                            (full_name, username, grade, driver_capacity, current_user.id))
+                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, residence = {placeholder}, driver_capacity = {placeholder} WHERE id = {placeholder}",
+                            (full_name, username, grade, residence, driver_capacity, current_user.id))
             conn.commit()
 
             # Update all vehicles if user is a driver
@@ -585,7 +567,7 @@ def profile():
 
     # GET request - fetch user data
     try:
-        cur.execute(f"SELECT username, grade, driver_capacity FROM users WHERE id = {placeholder}", (current_user.id,))
+        cur.execute(f"SELECT username, grade, residence, driver_capacity FROM users WHERE id = {placeholder}", (current_user.id,))
         user_data = cur.fetchone()
 
         vehicles_data = []

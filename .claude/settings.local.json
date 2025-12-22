@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python migrate_capacity_to_users.py:*)"
+      "Bash(python migrate_capacity_to_users.py:*)",
+      "Bash(python migrate_residence.py:*)"
     ]
   }
 }
