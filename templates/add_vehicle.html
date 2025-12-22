@@ -14,17 +14,15 @@
                         <input type="text" name="vehicle_name" class="form-control" placeholder="Honda Accord" required>
                         <small class="form-text text-muted">Enter the make and model of your vehicle</small>
                     </div>
-                    <div class="mb-3">
-                        <label>Max Passenger Capacity</label>
-                        <input type="number" name="capacity" class="form-control" min="1" max="20" placeholder="4" required>
-                        <small class="form-text text-muted">How many passengers can you take?</small>
-                    </div>
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" name="remember_vehicle" id="rememberVehicle">
                         <label class="form-check-label" for="rememberVehicle">
                             Remember Vehicle
                         </label>
                         <small class="form-text text-muted d-block">Keep this vehicle after the weekly Monday 12am reset (passengers will still be cleared)</small>
+                    </div>
+                    <div class="alert alert-info">
+                        <small><strong>Note:</strong> Your total passenger capacity is set in your profile and applies across all your vehicles.</small>
                     </div>
                     <button type="submit" class="btn btn-success w-100">Add Vehicle</button>
                 </form>

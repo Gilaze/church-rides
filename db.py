@@ -33,7 +33,8 @@ def init_db():
             grade VARCHAR(20),
             is_driver BOOLEAN DEFAULT FALSE,
             is_admin BOOLEAN DEFAULT FALSE,
-            phone_number VARCHAR(20)
+            phone_number VARCHAR(20),
+            driver_capacity INTEGER
         );
         """)
 
@@ -42,7 +43,6 @@ def init_db():
             id SERIAL PRIMARY KEY,
             driver_id INTEGER REFERENCES users(id),
             vehicle_name VARCHAR(50),
-            capacity INTEGER,
             remember_vehicle BOOLEAN DEFAULT FALSE
         );
         """)
@@ -65,7 +65,8 @@ def init_db():
             grade TEXT,
             is_driver INTEGER DEFAULT 0,
             is_admin INTEGER DEFAULT 0,
-            phone_number TEXT
+            phone_number TEXT,
+            driver_capacity INTEGER
         );
         """)
 
@@ -74,7 +75,6 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             driver_id INTEGER REFERENCES users(id),
             vehicle_name TEXT,
-            capacity INTEGER,
             remember_vehicle INTEGER DEFAULT 0
         );
         """)

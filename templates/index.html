@@ -64,8 +64,8 @@
             <div class="driver-header d-flex justify-content-between align-items-start">
                 <div>
                     <h5>{{ car.name }}</h5>
-                    <small>Driver: {{ car.driver }}</small>
-                    <span class="badge bg-secondary">{{ car.passengers|length }} / {{ car.capacity }}</span>
+                    <small>Driver: {{ car.driver }}</small><br>
+                    <small class="text-muted">Driver capacity: {{ car.driver_total_passengers }} / {{ car.driver_capacity }}</small>
                 </div>
                 {% if current_user.is_authenticated and (car.driver_id == current_user.id or current_user.is_admin) %}
                     <a href="/remove_vehicle/{{ car.id }}" class="btn btn-sm btn-outline-danger"

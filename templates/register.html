@@ -84,12 +84,13 @@
 
                     <div id="vehicleFields" style="display: none;">
                         <div class="mb-3">
-                            <label>Vehicle Name</label>
-                            <input type="text" name="vehicle_name" class="form-control" placeholder="Honda Accord">
+                            <label>Your Max Passenger Capacity (total across all your vehicles)</label>
+                            <input type="number" name="driver_capacity" class="form-control" min="1" max="30" placeholder="8" required>
+                            <small class="form-text text-muted">This is the total number of passengers you can take across ALL your vehicles</small>
                         </div>
                         <div class="mb-3">
-                            <label>Max Passenger Capacity</label>
-                            <input type="number" name="capacity" class="form-control" min="1" max="20" placeholder="4">
+                            <label>Vehicle Name (optional - you can add more vehicles later)</label>
+                            <input type="text" name="vehicle_name" class="form-control" placeholder="Honda Accord">
                         </div>
                     </div>
 

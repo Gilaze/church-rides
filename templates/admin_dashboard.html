@@ -77,14 +77,16 @@
                     <thead>
                         <tr>
                             <th>Vehicle Name</th>
-                            <th>Capacity</th>
+                            <th>Driver</th>
+                            <th>Driver Capacity</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for vehicle in vehicles %}
                         <tr>
                             <td>{{ vehicle.vehicle_name }}</td>
-                            <td>{{ vehicle.capacity }}</td>
+                            <td>{{ vehicle.driver_name }}</td>
+                            <td>{{ vehicle.driver_capacity }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

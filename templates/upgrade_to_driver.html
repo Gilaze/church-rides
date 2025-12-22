@@ -14,12 +14,17 @@
                 <div class="alert alert-info">
                     <strong>As a driver, you can:</strong>
                     <ul class="mb-0">
-                        <li>Add your vehicle to the ride board</li>
-                        <li>Manage your vehicle capacity</li>
-                        <li>Remove your vehicle at any time</li>
+                        <li>Add multiple vehicles to the ride board</li>
+                        <li>Set your total passenger capacity across all vehicles</li>
+                        <li>Remove your vehicles at any time</li>
                     </ul>
                 </div>
                 <form method="POST">
+                    <div class="mb-3">
+                        <label>Your Max Passenger Capacity (total across all your vehicles)</label>
+                        <input type="number" name="driver_capacity" class="form-control" min="1" max="30" placeholder="8" required>
+                        <small class="form-text text-muted">How many total passengers can you take across all your vehicles?</small>
+                    </div>
                     <button type="submit" class="btn btn-primary w-100">Upgrade to Driver</button>
                 </form>
             </div>
