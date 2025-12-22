@@ -143,6 +143,14 @@ def register():
         name = request.form['full_name']
         grade = request.form['grade']
         is_driver = 'is_driver' in request.form
+        register_as_admin = 'register_as_admin' in request.form
+
+        # Check admin password if user is trying to register as admin
+        if register_as_admin:
+            admin_password = request.form.get('admin_password', '')
+            if admin_password != 'berkeley':
+                flash("Invalid admin password. Registration failed.")
+                return redirect(url_for('register'))
 
         hashed = generate_password_hash(pwd)
 
@@ -153,8 +161,8 @@ def register():
         placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
         try:
-            cur.execute(f"INSERT INTO users (username, password_hash, full_name, grade, is_driver) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
-                        (username, hashed, name, grade, is_driver))
+            cur.execute(f"INSERT INTO users (username, password_hash, full_name, grade, is_driver, is_admin) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
+                        (username, hashed, name, grade, is_driver, register_as_admin))
             conn.commit()
 
             # If user is a driver and provided vehicle info, create vehicle
@@ -288,9 +296,10 @@ def add_vehicle():
         if request.method == 'POST':
             vehicle_name = request.form['vehicle_name']
             capacity = int(request.form['capacity'])
+            remember_vehicle = 'remember_vehicle' in request.form
 
-            cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, capacity) VALUES ({placeholder}, {placeholder}, {placeholder})",
-                        (current_user.id, vehicle_name, capacity))
+            cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, capacity, remember_vehicle) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})",
+                        (current_user.id, vehicle_name, capacity, remember_vehicle))
             conn.commit()
             flash("Vehicle added successfully!")
             return redirect(url_for('index'))
@@ -457,9 +466,10 @@ def profile():
             if current_user.is_driver and request.form.get('vehicle_name') and request.form.get('capacity'):
                 vehicle_name = request.form['vehicle_name']
                 capacity = int(request.form['capacity'])
+                remember_vehicle = 'remember_vehicle' in request.form
 
-                cur.execute(f"UPDATE vehicles SET vehicle_name = {placeholder}, capacity = {placeholder} WHERE driver_id = {placeholder}",
-                            (vehicle_name, capacity, current_user.id))
+                cur.execute(f"UPDATE vehicles SET vehicle_name = {placeholder}, capacity = {placeholder}, remember_vehicle = {placeholder} WHERE driver_id = {placeholder}",
+                            (vehicle_name, capacity, remember_vehicle, current_user.id))
                 conn.commit()
 
             # Update current_user object
@@ -481,7 +491,7 @@ def profile():
 
         vehicle_data = None
         if current_user.is_driver:
-            cur.execute(f"SELECT vehicle_name, capacity FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+            cur.execute(f"SELECT vehicle_name, capacity, remember_vehicle FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
             vehicle_data = cur.fetchone()
 
         return render_template('profile.html', user_data=user_data, vehicle_data=vehicle_data)

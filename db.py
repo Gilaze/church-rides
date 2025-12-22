@@ -42,7 +42,8 @@ def init_db():
             id SERIAL PRIMARY KEY,
             driver_id INTEGER REFERENCES users(id),
             vehicle_name VARCHAR(50),
-            capacity INTEGER
+            capacity INTEGER,
+            remember_vehicle BOOLEAN DEFAULT FALSE
         );
         """)
 
@@ -73,7 +74,8 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             driver_id INTEGER REFERENCES users(id),
             vehicle_name TEXT,
-            capacity INTEGER
+            capacity INTEGER,
+            remember_vehicle INTEGER DEFAULT 0
         );
         """)
 

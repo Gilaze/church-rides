@@ -4,3 +4,5 @@ werkzeug
 psycopg2-binary
 python-dotenv
 gunicorn
+apscheduler
+pytz

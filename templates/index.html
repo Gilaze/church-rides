@@ -136,5 +136,10 @@
     // Set today's date in headline
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById("date-display").innerText = new Date().toLocaleDateString("en-US", options);
+
+    // Auto-refresh page every 15 seconds
+    setTimeout(function() {
+        location.reload();
+    }, 15000);
 </script>
 {% endblock %}

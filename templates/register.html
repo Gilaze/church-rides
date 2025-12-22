@@ -44,6 +44,21 @@
                         </div>
                     </div>
 
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="register_as_admin" id="adminRegCheck" onchange="toggleAdminPassword()">
+                        <label class="form-check-label" for="adminRegCheck">
+                            Register as Admin
+                        </label>
+                    </div>
+
+                    <div id="adminPasswordField" style="display: none;">
+                        <div class="mb-3">
+                            <label>Admin Password</label>
+                            <input type="password" name="admin_password" class="form-control" placeholder="Enter admin password">
+                            <small class="form-text text-muted">Required to register as admin</small>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-success w-100">Register</button>
 
                     <script>
@@ -51,6 +66,12 @@
                             const checkbox = document.getElementById('driverCheck');
                             const fields = document.getElementById('vehicleFields');
                             fields.style.display = checkbox.checked ? 'block' : 'none';
+                        }
+
+                        function toggleAdminPassword() {
+                            const checkbox = document.getElementById('adminRegCheck');
+                            const field = document.getElementById('adminPasswordField');
+                            field.style.display = checkbox.checked ? 'block' : 'none';
                         }
                     </script>
                 </form>

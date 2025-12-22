@@ -1,0 +1,33 @@
+name: Weekly Vehicle Reset
+
+on:
+  schedule:
+    # Cron syntax: Minute Hour DayMonth Month DayWeek
+    # 08:00 UTC is 12:00 AM PST (Standard Time) / 1:00 AM PDT (Daylight Time)
+    - cron: '0 8 * * 1' 
+  workflow_dispatch: # Allows you to run this manually from the GitHub Actions tab for testing
+
+jobs:
+  reset_vehicles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9' # Or whatever version you use locally
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # Fallback: ensures these specific libs exist even if requirements.txt is missing them
+          pip install sqlalchemy psycopg2-binary pytz
+
+      - name: Run Reset Script
+        env:
+          # This pulls the secret connection string from your repo settings
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python reset_vehicles.py
