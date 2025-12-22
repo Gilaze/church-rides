@@ -2,11 +2,12 @@ from flask_login import UserMixin
 from db import get_db_connection
 
 class User(UserMixin):
-    def __init__(self, id, username, full_name, is_driver):
+    def __init__(self, id, username, full_name, is_driver, is_admin=False):
         self.id = id
         self.username = username
         self.full_name = full_name
         self.is_driver = is_driver
+        self.is_admin = is_admin
 
     @staticmethod
     def get(user_id):
@@ -23,7 +24,7 @@ class User(UserMixin):
             conn.close()
             if not user_data:
                 return None
-            return User(user_data['id'], user_data['username'], user_data['full_name'], user_data['is_driver'])
+            return User(user_data['id'], user_data['username'], user_data['full_name'], user_data['is_driver'], user_data.get('is_admin', False))
         except Exception as e:
             print(f"Error loading user {user_id}: {e}")
             return None

@@ -42,7 +42,7 @@ def index():
 
     try:
         # Get all vehicles
-        cur.execute("SELECT v.id, v.vehicle_name, v.capacity, u.full_name as driver_name FROM vehicles v JOIN users u ON v.driver_id = u.id")
+        cur.execute("SELECT v.id, v.vehicle_name, v.capacity, v.driver_id, u.full_name as driver_name FROM vehicles v JOIN users u ON v.driver_id = u.id")
         vehicles = cur.fetchall()
 
         # Get all bookings to see who is in what car
@@ -55,6 +55,7 @@ def index():
                 'id': v['id'],
                 'name': v['vehicle_name'],
                 'driver': v['driver_name'],
+                'driver_id': v['driver_id'],
                 'capacity': v['capacity'],
                 'passengers': passengers,
                 'is_full': len(passengers) >= v['capacity']
@@ -144,6 +145,20 @@ def register():
             cur.execute(f"INSERT INTO users (username, password_hash, full_name, is_driver) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})",
                         (username, hashed, name, is_driver))
             conn.commit()
+
+            # If user is a driver and provided vehicle info, create vehicle
+            if is_driver and request.form.get('vehicle_name') and request.form.get('capacity'):
+                vehicle_name = request.form['vehicle_name']
+                capacity = int(request.form['capacity'])
+
+                # Get the newly created user's ID
+                cur.execute(f"SELECT id FROM users WHERE username = {placeholder}", (username,))
+                user_id = cur.fetchone()['id']
+
+                cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, capacity) VALUES ({placeholder}, {placeholder}, {placeholder})",
+                            (user_id, vehicle_name, capacity))
+                conn.commit()
+
             conn.close()
             flash("Registration successful! Please log in.")
             return redirect(url_for('login'))
@@ -171,7 +186,7 @@ def login():
             user = cur.fetchone()
 
             if user and check_password_hash(user['password_hash'], pwd):
-                user_obj = User(user['id'], user['username'], user['full_name'], user['is_driver'])
+                user_obj = User(user['id'], user['username'], user['full_name'], user['is_driver'], user.get('is_admin', False))
                 login_user(user_obj)
                 return redirect(url_for('index'))
             else:
@@ -188,6 +203,139 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+# --- VEHICLE MANAGEMENT ROUTES ---
+
+@app.route('/add_vehicle', methods=['GET', 'POST'])
+@login_required
+def add_vehicle():
+    if not current_user.is_driver:
+        flash("Only drivers can add vehicles.")
+        return redirect(url_for('index'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+    try:
+        # Check if user already has a vehicle
+        cur.execute(f"SELECT * FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+        existing_vehicle = cur.fetchone()
+
+        if existing_vehicle:
+            flash("You already have a vehicle registered.")
+            return redirect(url_for('index'))
+
+        if request.method == 'POST':
+            vehicle_name = request.form['vehicle_name']
+            capacity = int(request.form['capacity'])
+
+            cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, capacity) VALUES ({placeholder}, {placeholder}, {placeholder})",
+                        (current_user.id, vehicle_name, capacity))
+            conn.commit()
+            flash("Vehicle added successfully!")
+            return redirect(url_for('index'))
+    except Exception as e:
+        print(f"Add vehicle error: {e}")
+        flash("Error adding vehicle. Please try again.")
+    finally:
+        conn.close()
+
+    return render_template('add_vehicle.html')
+
+@app.route('/remove_vehicle/<int:vehicle_id>')
+@login_required
+def remove_vehicle(vehicle_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+    try:
+        # Get vehicle info
+        cur.execute(f"SELECT driver_id FROM vehicles WHERE id = {placeholder}", (vehicle_id,))
+        vehicle = cur.fetchone()
+
+        if not vehicle:
+            flash("Vehicle not found.")
+            return redirect(url_for('index'))
+
+        # Check if user owns this vehicle or is admin
+        if vehicle['driver_id'] != current_user.id and not current_user.is_admin:
+            flash("You can only remove your own vehicle.")
+            return redirect(url_for('index'))
+
+        # Delete all bookings for this vehicle first
+        cur.execute(f"DELETE FROM bookings WHERE vehicle_id = {placeholder}", (vehicle_id,))
+
+        # Delete the vehicle
+        cur.execute(f"DELETE FROM vehicles WHERE id = {placeholder}", (vehicle_id,))
+        conn.commit()
+        flash("Vehicle removed successfully!")
+    except Exception as e:
+        print(f"Remove vehicle error: {e}")
+        flash("Error removing vehicle. Please try again.")
+    finally:
+        conn.close()
+
+    return redirect(url_for('index'))
+
+@app.route('/remove_passenger/<int:vehicle_id>/<int:passenger_id>')
+@login_required
+def remove_passenger(vehicle_id, passenger_id):
+    # Only admins or the passenger themselves can remove a passenger
+    if not current_user.is_admin and current_user.id != passenger_id:
+        flash("You don't have permission to remove this passenger.")
+        return redirect(url_for('index'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+    try:
+        cur.execute(f"DELETE FROM bookings WHERE passenger_id = {placeholder} AND vehicle_id = {placeholder}",
+                    (passenger_id, vehicle_id))
+        conn.commit()
+        flash("Passenger removed successfully!")
+    except Exception as e:
+        print(f"Remove passenger error: {e}")
+        flash("Error removing passenger. Please try again.")
+    finally:
+        conn.close()
+
+    return redirect(url_for('index'))
+
+# --- ACCOUNT MANAGEMENT ROUTES ---
+
+@app.route('/upgrade_to_driver', methods=['GET', 'POST'])
+@login_required
+def upgrade_to_driver():
+    if current_user.is_driver:
+        flash("You are already a driver.")
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        conn = get_db_connection()
+        cur = conn.cursor()
+        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+        try:
+            # Update user to driver
+            cur.execute(f"UPDATE users SET is_driver = {placeholder} WHERE id = {placeholder}",
+                        (True, current_user.id))
+            conn.commit()
+
+            # Update current_user object
+            current_user.is_driver = True
+
+            flash("You are now a driver! You can add your vehicle.")
+            return redirect(url_for('add_vehicle'))
+        except Exception as e:
+            print(f"Upgrade to driver error: {e}")
+            flash("Error upgrading account. Please try again.")
+        finally:
+            conn.close()
+
+    return render_template('upgrade_to_driver.html')
 
 if __name__ == '__main__':
     # Initialize DB tables if they don't exist

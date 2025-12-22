@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white text-center">
+                <h4>Add Your Vehicle</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label>Vehicle Name</label>
+                        <input type="text" name="vehicle_name" class="form-control" placeholder="Honda Accord" required>
+                        <small class="form-text text-muted">Enter the make and model of your vehicle</small>
+                    </div>
+                    <div class="mb-3">
+                        <label>Max Passenger Capacity</label>
+                        <input type="number" name="capacity" class="form-control" min="1" max="20" placeholder="4" required>
+                        <small class="form-text text-muted">How many passengers can you take?</small>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Add Vehicle</button>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <small><a href="/">Cancel and go back</a></small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

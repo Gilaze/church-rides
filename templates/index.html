@@ -1,38 +1,74 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="text-center mb-5">
+<div class="text-center mb-4">
     <h2>Sunday Service Transport</h2>
     <h4 class="text-muted" id="date-display"></h4>
 </div>
 
-{% if current_user.is_driver %}
-<div class="mb-4">
-    <button class="btn btn-success"> + Register My Vehicle</button>
+<!-- Account Actions -->
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        {% if current_user.is_driver %}
+            <a href="/add_vehicle" class="btn btn-success">+ Add My Vehicle</a>
+        {% else %}
+            <a href="/upgrade_to_driver" class="btn btn-outline-primary">Become a Driver</a>
+        {% endif %}
+    </div>
+    {% if current_user.is_admin %}
+        <span class="badge bg-danger fs-6">ADMIN</span>
+    {% endif %}
 </div>
-{% endif %}
+
+<!-- Check if user is already in a vehicle -->
+{% set user_current_vehicle = none %}
+{% for car in vehicles %}
+    {% for person in car.passengers %}
+        {% if person.id == current_user.id %}
+            {% set user_current_vehicle = car.id %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
 
 <div class="row row-cols-1 row-cols-md-3 g-4">
     {% for car in vehicles %}
     <div class="col">
         <div class="vehicle-card {% if car.is_full %}full-capacity{% endif %}">
-            <div class="driver-header">
-                <h5>{{ car.name }}</h5>
-                <small>Driver: {{ car.driver }}</small>
-                <span class="badge bg-secondary float-end">{{ car.passengers|length }} / {{ car.capacity }}</span>
+            <div class="driver-header d-flex justify-content-between align-items-start">
+                <div>
+                    <h5>{{ car.name }}</h5>
+                    <small>Driver: {{ car.driver }}</small>
+                    <span class="badge bg-secondary">{{ car.passengers|length }} / {{ car.capacity }}</span>
+                </div>
+                {% if car.driver_id == current_user.id or current_user.is_admin %}
+                    <a href="/remove_vehicle/{{ car.id }}" class="btn btn-sm btn-outline-danger"
+                       onclick="return confirm('Are you sure you want to remove this vehicle?')">
+                        ✕
+                    </a>
+                {% endif %}
             </div>
 
             <ul class="list-group list-group-flush mt-3 mb-3">
                 {% for person in car.passengers %}
-                    <li class="list-group-item">
-                        {{ person.full_name }}
-                        {% if person.id == current_user.id %}
-                            <span class="badge bg-success">YOU</span>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            {{ person.full_name }}
+                            {% if person.id == current_user.id %}
+                                <span class="badge bg-success">YOU</span>
+                            {% endif %}
+                        </span>
+                        {% if current_user.is_admin or person.id == current_user.id %}
+                            <a href="/remove_passenger/{{ car.id }}/{{ person.id }}"
+                               class="btn btn-sm btn-danger"
+                               style="width: 25px; height: 25px; padding: 0; line-height: 23px;">
+                                ✕
+                            </a>
                         {% endif %}
                     </li>
                 {% endfor %}
             </ul>
 
+            <!-- Button logic for passengers -->
             {% set in_this_car = false %}
             {% for person in car.passengers %}
                 {% if person.id == current_user.id %}
@@ -40,16 +76,26 @@
                 {% endif %}
             {% endfor %}
 
-            {% if in_this_car %}
-                <a href="/leave" class="btn btn-danger w-100">Remove Me</a>
-            {% elif not car.is_full %}
-                <a href="/join/{{ car.id }}" class="btn btn-primary w-100">Add Attendee</a>
-            {% else %}
+            {% if user_current_vehicle == none and not car.is_full %}
+                <!-- User not in any vehicle - show +add button if space available -->
+                <a href="/join/{{ car.id }}" class="btn btn-primary w-100">+ Add</a>
+            {% elif user_current_vehicle == car.id %}
+                <!-- User is in this vehicle - show remove button (handled above in passenger list) -->
+            {% elif car.is_full %}
                 <button class="btn btn-secondary w-100" disabled>Full</button>
+            {% else %}
+                <!-- User is in another vehicle - don't show button -->
+                <button class="btn btn-secondary w-100" disabled>Already Booked</button>
             {% endif %}
         </div>
     </div>
     {% endfor %}
+
+    {% if vehicles|length == 0 %}
+        <div class="col-12 text-center">
+            <p class="text-muted">No vehicles available yet. Drivers can add their vehicles above.</p>
+        </div>
+    {% endif %}
 </div>
 
 <script>

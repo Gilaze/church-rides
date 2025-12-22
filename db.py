@@ -31,6 +31,7 @@ def init_db():
             password_hash VARCHAR(255) NOT NULL,
             full_name VARCHAR(100) NOT NULL,
             is_driver BOOLEAN DEFAULT FALSE,
+            is_admin BOOLEAN DEFAULT FALSE,
             phone_number VARCHAR(20)
         );
         """)
@@ -60,6 +61,7 @@ def init_db():
             password_hash TEXT NOT NULL,
             full_name TEXT NOT NULL,
             is_driver INTEGER DEFAULT 0,
+            is_admin INTEGER DEFAULT 0,
             phone_number TEXT
         );
         """)

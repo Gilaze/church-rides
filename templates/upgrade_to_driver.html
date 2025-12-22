@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h4>Become a Driver</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-center mb-4">
+                    Upgrade your account to become a driver and help transport others to church!
+                </p>
+                <div class="alert alert-info">
+                    <strong>As a driver, you can:</strong>
+                    <ul class="mb-0">
+                        <li>Add your vehicle to the ride board</li>
+                        <li>Manage your vehicle capacity</li>
+                        <li>Remove your vehicle at any time</li>
+                    </ul>
+                </div>
+                <form method="POST">
+                    <button type="submit" class="btn btn-primary w-100">Upgrade to Driver</button>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <small><a href="/">Cancel and go back</a></small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
