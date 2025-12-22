@@ -13,50 +13,7 @@ try:
     init_db()
     print("Database Initialized!")
 
-    # ONE-TIME MIGRATION: Add missing columns to production
-    # TODO: Remove this block after successful deployment
-    import psycopg2
-    from psycopg2.extras import RealDictCursor
-    database_url = os.environ.get('DATABASE_URL')
-    if database_url:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
-        cur = conn.cursor()
 
-        # Migration 1: Add grade column to users table
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name='users' AND column_name='grade';
-        """)
-        if not cur.fetchone():
-            print("Running migration: Adding grade column to users...")
-            cur.execute("ALTER TABLE users ADD COLUMN grade VARCHAR(20);")
-            conn.commit()
-            print("✓ Grade column migration completed!")
-
-        # Migration 2: Add is_admin column to users table
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name='users' AND column_name='is_admin';
-        """)
-        if not cur.fetchone():
-            print("Running migration: Adding is_admin column to users...")
-            cur.execute("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;")
-            conn.commit()
-            print("✓ is_admin column migration completed!")
-
-        # Migration 3: Add remember_vehicle column to vehicles table
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name='vehicles' AND column_name='remember_vehicle';
-        """)
-        if not cur.fetchone():
-            print("Running migration: Adding remember_vehicle column to vehicles...")
-            cur.execute("ALTER TABLE vehicles ADD COLUMN remember_vehicle BOOLEAN DEFAULT FALSE;")
-            conn.commit()
-            print("✓ Remember_vehicle column migration completed!")
-
-        cur.close()
-        conn.close()
 except Exception as e:
     print(f"Error during initialization/migration: {e}")
 # --- NEW CODE BLOCK END ---
@@ -218,8 +175,8 @@ def register():
                 cur.execute(f"SELECT id FROM users WHERE username = {placeholder}", (username,))
                 user_id = cur.fetchone()['id']
 
-                cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, capacity) VALUES ({placeholder}, {placeholder}, {placeholder})",
-                            (user_id, vehicle_name, capacity))
+                cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, capacity, remember_vehicle) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder})",
+                            (user_id, vehicle_name, capacity, False))
                 conn.commit()
 
             conn.close()
