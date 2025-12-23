@@ -47,8 +47,9 @@
     /* --- Desktop Styles (> 768px) --- */
     @media (min-width: 768px) {
         .mobile-auth-container {
-            /* Centers the box vertically on big screens */
-            min-height: 85vh !important; 
+            /* CHANGED: This calculation prevents scrolling on PC by subtracting
+               the approximate height of Navbar + Footer + Margins from the viewport */
+            min-height: calc(100vh - 250px) !important; 
         }
         .mobile-auth-card {
             max-width: 500px;
