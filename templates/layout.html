@@ -24,6 +24,146 @@
         .vehicle-card { background-color: #f8f9fa; border-radius: 10px; padding: 15px; height: 100%; }
         .driver-header { font-weight: bold; color: #2c3e50; border-bottom: 2px solid #ddd; margin-bottom: 10px;}
         .full-capacity { background-color: #ffeeba; }
+
+        /* Mobile/iOS optimizations */
+        @media (max-width: 767px) {
+            /* Make body text larger */
+            body {
+                font-size: 18px !important;
+            }
+
+            /* Larger headings */
+            h2 {
+                font-size: 2rem !important;
+                margin-bottom: 1.5rem !important;
+            }
+
+            h5 {
+                font-size: 1.5rem !important;
+            }
+
+            /* Navigation - larger and more spacing */
+            .navbar {
+                padding: 1rem 0.5rem !important;
+                margin-bottom: 2rem !important;
+            }
+
+            .navbar-brand {
+                font-size: 1.3rem !important;
+            }
+
+            .navbar .btn {
+                font-size: 1.1rem !important;
+                padding: 0.6rem 1rem !important;
+            }
+
+            .navbar-text {
+                font-size: 1.1rem !important;
+            }
+
+            /* Container - more padding */
+            .container {
+                padding-left: 1.5rem !important;
+                padding-right: 1.5rem !important;
+            }
+
+            /* Vehicle cards - larger and more spacing */
+            .vehicle-card {
+                padding: 1.5rem !important;
+                margin-bottom: 1.5rem !important;
+                font-size: 1.1rem !important;
+            }
+
+            .vehicle-card h5 {
+                font-size: 1.6rem !important;
+                margin-bottom: 1rem !important;
+            }
+
+            .vehicle-card small {
+                font-size: 1rem !important;
+                line-height: 1.8 !important;
+            }
+
+            /* List items - more spacing */
+            .list-group-item {
+                padding: 1.2rem !important;
+                font-size: 1.1rem !important;
+            }
+
+            /* Buttons - larger and easier to tap */
+            .btn {
+                font-size: 1.2rem !important;
+                padding: 1rem 1.5rem !important;
+                margin-bottom: 0.75rem !important;
+            }
+
+            .btn-sm {
+                font-size: 1rem !important;
+                padding: 0.75rem 1rem !important;
+            }
+
+            /* Alerts - larger text */
+            .alert {
+                font-size: 1.1rem !important;
+                padding: 1.25rem !important;
+                margin-bottom: 1.5rem !important;
+            }
+
+            /* Badges - larger */
+            .badge {
+                font-size: 0.9rem !important;
+                padding: 0.5rem 0.75rem !important;
+            }
+
+            /* Make remove buttons larger and easier to tap */
+            .list-group-item .btn-danger {
+                min-width: 35px !important;
+                min-height: 35px !important;
+                font-size: 1.2rem !important;
+            }
+
+            /* Footer - larger text */
+            footer {
+                font-size: 1rem !important;
+                padding: 1.5rem 0 !important;
+            }
+
+            footer small {
+                font-size: 0.95rem !important;
+            }
+
+            /* Date display */
+            #date-display {
+                font-size: 1rem !important;
+            }
+
+            /* Make grid stack properly on mobile */
+            .row-cols-1 {
+                row-gap: 1.5rem !important;
+            }
+
+            /* Driver header remove button */
+            .driver-header .btn-outline-danger {
+                min-width: 40px !important;
+                min-height: 40px !important;
+                font-size: 1.3rem !important;
+            }
+        }
+
+        /* Extra spacing for very small screens (iPhone SE, etc) */
+        @media (max-width: 400px) {
+            body {
+                font-size: 17px !important;
+            }
+
+            .vehicle-card {
+                padding: 1.25rem !important;
+            }
+
+            h2 {
+                font-size: 1.75rem !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-light">
