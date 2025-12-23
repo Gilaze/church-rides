@@ -12,39 +12,6 @@ try:
     init_db()
     print("Database Initialized!")
 
-    # ONE-TIME MIGRATION: Add residence and email columns to users table
-    # TODO: Remove this block after successful deployment
-    import psycopg2
-    from psycopg2.extras import RealDictCursor
-    database_url = os.environ.get('DATABASE_URL')
-    if database_url:
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
-        cur = conn.cursor()
-
-        # Add residence column if it doesn't exist
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name='users' AND column_name='residence';
-        """)
-        if not cur.fetchone():
-            print("Running migration: Adding residence column to users...")
-            cur.execute("ALTER TABLE users ADD COLUMN residence VARCHAR(100);")
-            conn.commit()
-            print("✓ Residence column migration completed!")
-
-        # Add email column if it doesn't exist
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name='users' AND column_name='email';
-        """)
-        if not cur.fetchone():
-            print("Running migration: Adding email column to users...")
-            cur.execute("ALTER TABLE users ADD COLUMN email VARCHAR(100);")
-            conn.commit()
-            print("✓ Email column migration completed!")
-
-        cur.close()
-        conn.close()
 
 except Exception as e:
     print(f"Error during initialization/migration: {e}")
@@ -331,16 +298,27 @@ def admin_dashboard():
     placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
-        # Get all passengers (non-drivers)
-        cur.execute(f"SELECT full_name, grade FROM users WHERE is_driver = {placeholder} OR is_driver IS NULL", (False,))
+        # Get all passengers who have active bookings
+        cur.execute("""
+            SELECT DISTINCT u.full_name, u.grade
+            FROM users u
+            JOIN bookings b ON u.id = b.passenger_id
+            ORDER BY u.full_name
+        """)
         passengers = cur.fetchall()
 
-        # Get all drivers
-        cur.execute(f"SELECT full_name, grade FROM users WHERE is_driver = {placeholder}", (True,))
+        # Get all drivers who have active vehicles
+        cur.execute("""
+            SELECT DISTINCT u.full_name, u.grade
+            FROM users u
+            JOIN vehicles v ON u.id = v.driver_id
+            WHERE u.is_driver = TRUE
+            ORDER BY u.full_name
+        """)
         drivers = cur.fetchall()
 
         # Get all users
-        cur.execute("SELECT full_name, username, grade, residence FROM users ORDER BY full_name")
+        cur.execute("SELECT full_name, username, grade, residence, phone_number, email FROM users ORDER BY full_name")
         all_users = cur.fetchall()
 
         # Get all vehicles with driver info and calculate occupied capacity
