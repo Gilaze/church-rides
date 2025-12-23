@@ -2,144 +2,90 @@
 
 {% block content %}
 <style>
+    /* --- Mobile Styles (< 767px) --- */
     @media (max-width: 767px) {
-        .mobile-register-container {
-            min-height: 100vh !important;
-            padding: 0 !important;
+        .mobile-auth-container {
+            /* Remove the forced full height so it doesn't stretch weirdly */
+            min-height: auto !important; 
+            padding: 2rem 1rem !important; /* Add breathing room on sides */
         }
-        .mobile-register-card {
-            width: 95vw !important;
-            margin: 0 auto !important;
+        
+        .mobile-auth-card {
+            width: 100% !important;
+            max-width: 450px !important;
         }
-        .mobile-register-card .card-header {
-            padding: 2.5rem !important;
+
+        /* Allow the card to fit content naturally */
+        .mobile-auth-card .card { height: auto !important; }
+        
+        /* Shrink the header padding so it doesn't dominate the screen */
+        .mobile-auth-card .card-header { padding: 1rem !important; }
+        
+        /* Make the title smaller and neater */
+        .mobile-auth-card h4 { font-size: 1.5rem !important; margin-bottom: 0 !important; }
+        
+        /* Add space inside the white box */
+        .mobile-auth-card .card-body { padding: 1.5rem !important; }
+
+        /* Standardize input size (16px prevents iOS zoom) */
+        .mobile-auth-card .form-control-lg { 
+            font-size: 1rem !important; 
+            padding: 0.75rem 1rem;
         }
-        .mobile-register-card .card-body {
-            padding: 2.5rem 2rem !important;
+        
+        /* Ensure labels have space */
+        .mobile-auth-card .form-label { margin-bottom: 0.5rem; font-weight: 500; }
+        
+        /* Keep button on one line */
+        .mobile-auth-card .btn-lg { 
+            white-space: nowrap; 
+            font-size: 1.1rem; 
+            padding: 0.75rem;
         }
-        .mobile-register-card label {
-            font-size: 1.3rem !important;
-            margin-bottom: 0.75rem !important;
-            font-weight: 500 !important;
+    }
+
+    /* --- Desktop Styles (> 768px) --- */
+    @media (min-width: 768px) {
+        .mobile-auth-container {
+            /* Centers the box vertically on big screens */
+            min-height: 85vh !important; 
         }
-        .mobile-register-card .form-control {
-            font-size: 1.5rem !important;
-            padding: 1rem 1.25rem !important;
-            height: auto !important;
-        }
-        .mobile-register-card .btn {
-            font-size: 1.75rem !important;
-            padding: 1.25rem !important;
-        }
-        .mobile-register-card h4 {
-            font-size: 2.25rem !important;
-        }
-        .mobile-register-card .form-check {
-            font-size: 1.3rem !important;
-        }
-        .mobile-register-card .form-check-input {
-            width: 1.75rem !important;
-            height: 1.75rem !important;
-        }
-        .mobile-register-card .card-footer {
-            padding: 1.75rem !important;
-            font-size: 1.15rem !important;
-        }
-        .mobile-register-card .mb-3 {
-            margin-bottom: 1.5rem !important;
+        .mobile-auth-card {
+            max-width: 500px;
         }
     }
 </style>
-<div class="row justify-content-center align-items-center mobile-register-container" style="min-height: 75vh;">
-    <div class="col-11 col-sm-10 col-md-8 col-lg-6 mobile-register-card">
-        <div class="card shadow">
-            <div class="card-header bg-success text-white text-center py-4">
+
+<div class="row justify-content-center align-items-center mobile-auth-container">
+    <div class="col-12 col-md-8 col-lg-6 mobile-auth-card">
+        <div class="card shadow border-0">
+            <div class="card-header bg-success text-white text-center py-3">
                 <h4 class="mb-0">Create Account</h4>
             </div>
+            
             <div class="card-body p-4">
                 <form method="POST">
                     <div class="mb-3">
-                        <label>Full Name</label>
-                        <input type="text" name="full_name" class="form-control" placeholder="John Doe" required>
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="full_name" class="form-control form-control-lg" placeholder="John Doe" required>
                     </div>
+
                     <div class="mb-3">
-                        <label>Username</label>
-                        <input type="text" name="username" class="form-control" required>
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control form-control-lg" required>
                     </div>
+
                     <div class="mb-3">
-                        <label>Password</label>
-                        <input type="password" name="password" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Grade</label>
-                        <input type="text" name="grade" class="form-control" placeholder="Freshman, Sophomore, Junior, Senior" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Residence</label>
-                        <input type="text" name="residence" class="form-control" placeholder="City, State or Area" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Phone Number (optional)</label>
-                        <input type="tel" name="phone_number" class="form-control" placeholder="(123) 456-7890">
-                    </div>
-                    <div class="mb-3">
-                        <label>Email (optional)</label>
-                        <input type="email" name="email" class="form-control" placeholder="your.email@example.com">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control form-control-lg" required>
                     </div>
 
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" name="is_driver" id="driverCheck" onchange="toggleVehicleFields()">
-                        <label class="form-check-label" for="driverCheck">
-                            I am a Driver (I have a car)
-                        </label>
-                    </div>
-
-                    <div id="vehicleFields" style="display: none;">
-                        <div class="mb-3">
-                            <label>Your Max Passenger Capacity (total across all your vehicles)</label>
-                            <input type="number" name="driver_capacity" class="form-control" min="1" max="30" placeholder="8" required>
-                            <small class="form-text text-muted">This is the total number of passengers you can take across ALL your vehicles</small>
-                        </div>
-                        <div class="mb-3">
-                            <label>Vehicle Name (optional - you can add more vehicles later)</label>
-                            <input type="text" name="vehicle_name" class="form-control" placeholder="Honda Accord">
-                        </div>
-                    </div>
-
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" name="register_as_admin" id="adminRegCheck" onchange="toggleAdminPassword()">
-                        <label class="form-check-label" for="adminRegCheck">
-                            Register as Admin
-                        </label>
-                    </div>
-
-                    <div id="adminPasswordField" style="display: none;">
-                        <div class="mb-3">
-                            <label>Admin Password</label>
-                            <input type="password" name="admin_password" class="form-control" placeholder="Enter admin password">
-                            <small class="form-text text-muted">Required to register as admin</small>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-success w-100">Register</button>
-
-                    <script>
-                        function toggleVehicleFields() {
-                            const checkbox = document.getElementById('driverCheck');
-                            const fields = document.getElementById('vehicleFields');
-                            fields.style.display = checkbox.checked ? 'block' : 'none';
-                        }
-
-                        function toggleAdminPassword() {
-                            const checkbox = document.getElementById('adminRegCheck');
-                            const field = document.getElementById('adminPasswordField');
-                            field.style.display = checkbox.checked ? 'block' : 'none';
-                        }
-                    </script>
+                    <button type="submit" class="btn btn-success btn-lg w-100 mt-2">Sign Up</button>
                 </form>
             </div>
-            <div class="card-footer text-center">
-                <small>Already have an account? <a href="/login">Login here</a></small>
+            
+            <div class="card-footer text-center bg-white py-3">
+                <small>Already have an account? <a href="/login" class="text-success text-decoration-none fw-bold">Login here</a></small>
             </div>
         </div>
     </div>
