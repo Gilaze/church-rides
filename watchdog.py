@@ -25,6 +25,7 @@ CHECK_INTERVAL = int(os.environ.get('CHECK_INTERVAL', 300))
 # Email settings
 SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+SMTP_SSL_PORT = int(os.environ.get('SMTP_SSL_PORT', 465))  # Fallback SSL port
 SMTP_USERNAME = os.environ.get('SMTP_USERNAME', 'your-email@gmail.com')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', 'your-app-password')
 
@@ -188,18 +189,29 @@ The service will continue monitoring and will notify you when it's back online.
         # Attach text body
         msg.attach(MIMEText(text_body, 'plain'))
 
-        # Send email with retry logic
-        max_retries = 3
-        for attempt in range(1, max_retries + 1):
+        # Send email with retry logic - try both TLS and SSL
+        # Railway may block port 587, so we try 465 (SSL) as fallback
+        ports_to_try = [
+            ('TLS', SMTP_PORT, False),      # Port 587 with STARTTLS
+            ('SSL', SMTP_SSL_PORT, True),   # Port 465 with SSL
+        ]
+
+        for port_name, port, use_ssl in ports_to_try:
             try:
-                print(f"[{get_timestamp()}] 📧 Attempt {attempt}/{max_retries}: Connecting to {SMTP_SERVER}:{SMTP_PORT}...")
+                print(f"[{get_timestamp()}] 📧 Trying {port_name} on {SMTP_SERVER}:{port}...")
 
-                # Create SMTP connection with timeout
-                server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30)
+                # Create SMTP connection based on port type
+                if use_ssl:
+                    # Direct SSL connection (port 465)
+                    server = smtplib.SMTP_SSL(SMTP_SERVER, port, timeout=30)
+                    print(f"[{get_timestamp()}] 🔐 Connected via SSL")
+                else:
+                    # STARTTLS connection (port 587)
+                    server = smtplib.SMTP(SMTP_SERVER, port, timeout=30)
+                    print(f"[{get_timestamp()}] 🔐 Starting TLS...")
+                    server.starttls()
+
                 server.set_debuglevel(0)  # Set to 1 for verbose debugging
-
-                print(f"[{get_timestamp()}] 🔐 Starting TLS...")
-                server.starttls()
 
                 print(f"[{get_timestamp()}] 🔑 Logging in as {SMTP_USERNAME}...")
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
@@ -209,18 +221,18 @@ The service will continue monitoring and will notify you when it's back online.
 
                 server.quit()
 
-                print(f"[{get_timestamp()}] ✅ Alert email sent successfully to {ALERT_EMAIL}")
+                print(f"[{get_timestamp()}] ✅ Alert email sent successfully via {port_name} to {ALERT_EMAIL}")
                 return True
 
             except (OSError, smtplib.SMTPException) as e:
-                print(f"[{get_timestamp()}] ⚠️ Attempt {attempt} failed: {e}")
-                if attempt < max_retries:
-                    wait_time = attempt * 5  # Wait 5, 10, 15 seconds
-                    print(f"[{get_timestamp()}] Retrying in {wait_time} seconds...")
-                    time.sleep(wait_time)
-                else:
-                    print(f"[{get_timestamp()}] ❌ All {max_retries} attempts failed")
-                    return False
+                print(f"[{get_timestamp()}] ⚠️ {port_name} (port {port}) failed: {e}")
+                # Continue to next port
+                continue
+
+        # If both ports failed
+        print(f"[{get_timestamp()}] ❌ All email delivery methods failed (tried ports {SMTP_PORT} and {SMTP_SSL_PORT})")
+        print(f"[{get_timestamp()}] 💡 Railway may be blocking outbound SMTP. Consider using SendGrid, Mailgun, or Resend API instead.")
+        return False
 
     except smtplib.SMTPAuthenticationError as e:
         print(f"[{get_timestamp()}] ❌ SMTP Authentication failed!")
@@ -263,17 +275,38 @@ This is an automated notification from the Church Rides Watchdog Service.
 
         msg.attach(MIMEText(text_body, 'plain'))
 
-        print(f"[{get_timestamp()}] 📧 Sending recovery email to {ALERT_EMAIL}...")
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.send_message(msg)
+        # Try both TLS and SSL ports (same as alert email)
+        ports_to_try = [
+            ('TLS', SMTP_PORT, False),
+            ('SSL', SMTP_SSL_PORT, True),
+        ]
 
-        print(f"[{get_timestamp()}] ✅ Recovery email sent successfully to {ALERT_EMAIL}")
-        return True
+        for port_name, port, use_ssl in ports_to_try:
+            try:
+                print(f"[{get_timestamp()}] 📧 Sending recovery email via {port_name} (port {port})...")
+
+                if use_ssl:
+                    server = smtplib.SMTP_SSL(SMTP_SERVER, port, timeout=30)
+                else:
+                    server = smtplib.SMTP(SMTP_SERVER, port, timeout=30)
+                    server.starttls()
+
+                server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(msg)
+                server.quit()
+
+                print(f"[{get_timestamp()}] ✅ Recovery email sent successfully via {port_name} to {ALERT_EMAIL}")
+                return True
+
+            except (OSError, smtplib.SMTPException) as e:
+                print(f"[{get_timestamp()}] ⚠️ {port_name} failed: {e}")
+                continue
+
+        print(f"[{get_timestamp()}] ❌ All email delivery methods failed for recovery notification")
+        return False
 
     except Exception as e:
-        print(f"[{get_timestamp()}] ❌ Error sending recovery email: {e}")
+        print(f"[{get_timestamp()}] ❌ Unexpected error sending recovery email: {e}")
         return False
 
 
