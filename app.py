@@ -5,37 +5,23 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db_connection, init_db
 from models import User
 
-# Watchdog monitoring is now handled externally by Railway
-# Integrated watchdog disabled to prevent startup issues on Leapcell
+# Watchdog monitoring is now handled externally
 WATCHDOG_AVAILABLE = False
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313')
 
-# Lazy database initialization (Flask 2.3+ compatible)
-# This prevents startup timeout on Leapcell by deferring DB init
-_db_initialized = False
+# Initialize database tables (happens once at module load)
+# Tables are created if they don't exist, no-op if they do
+try:
+    init_db()
+except Exception as e:
+    # Tables likely already exist, continue
+    print(f"DB Init (non-critical): {e}")
 
-def ensure_db_initialized():
-    """Initialize database tables lazily on first use (not during app startup)"""
-    global _db_initialized
-    if not _db_initialized:
-        try:
-            print("Initializing Database...")
-            init_db()
-            print("Database Initialized!")
-            _db_initialized = True
-        except Exception as e:
-            print(f"Database initialization warning (tables may already exist): {e}")
-            _db_initialized = True  # Don't try again
-
-# Force HTTPS in production and ensure DB is initialized
+# Force HTTPS in production
 @app.before_request
-def before_request_handler():
-    # Initialize database on first request (any route)
-    ensure_db_initialized()
-
-    # Force HTTPS in production
+def force_https():
     if os.environ.get('DATABASE_URL'):  # Only in production
         if request.url.startswith('http://'):
             url = request.url.replace('http://', 'https://', 1)

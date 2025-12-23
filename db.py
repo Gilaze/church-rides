@@ -5,13 +5,18 @@ from psycopg2.extras import RealDictCursor
 
 def get_db_connection():
     database_url = os.environ.get('DATABASE_URL')
-    
+
     if database_url:
-        # Production (Leapcell/PostgreSQL)
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        # Production (Leapcell/PostgreSQL) with connection timeout
+        conn = psycopg2.connect(
+            database_url,
+            cursor_factory=RealDictCursor,
+            connect_timeout=10,  # 10 second connection timeout
+            options='-c statement_timeout=30000'  # 30 second query timeout
+        )
     else:
         # Development (Local SQLite)
-        conn = sqlite3.connect('church_ride.db')
+        conn = sqlite3.connect('church_ride.db', timeout=10)
         conn.row_factory = sqlite3.Row
     return conn
 
