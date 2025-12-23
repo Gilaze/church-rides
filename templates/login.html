@@ -28,11 +28,13 @@
     /* --- Desktop Styles (> 768px) --- */
     @media (min-width: 768px) {
         .mobile-login-container {
-            /* This height forces the align-items-center to push the box lower/center */
-            min-height: 85vh !important; 
+            /* CHANGED: This calculation subtracts the approximate height of the 
+               Navbar (~80px) + Footer (~100px) + Margins (~70px) 
+               so the total page height stays within 100vh (No Scroll) */
+            min-height: calc(100vh - 250px) !important;
         }
         .mobile-login-card {
-            max-width: 450px; /* Cleaner width on Desktop */
+            max-width: 450px;
         }
     }
 </style>
