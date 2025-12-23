@@ -5,13 +5,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db_connection, init_db
 from models import User
 
-# Import watchdog scheduler (runs monitoring in background)
-try:
-    from watchdog_scheduler import init_scheduler
-    WATCHDOG_AVAILABLE = True
-except ImportError:
-    WATCHDOG_AVAILABLE = False
-    print("Warning: Watchdog scheduler not available")
+# Watchdog monitoring is now handled externally by Railway
+# Integrated watchdog disabled to prevent startup issues on Leapcell
+WATCHDOG_AVAILABLE = False
 
 # --- NEW CODE BLOCK START ---
 # Run this immediately when the app loads, so tables are created on Leapcell
@@ -69,12 +65,8 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.get(user_id)
 
-# Initialize watchdog monitoring (runs in background)
-if WATCHDOG_AVAILABLE:
-    try:
-        init_scheduler(app)
-    except Exception as e:
-        print(f"Warning: Could not start watchdog monitoring: {e}")
+# Watchdog monitoring is handled externally by Railway service
+# No integrated watchdog needed - Railway monitors from outside
 
 # --- ROUTES ---
 
