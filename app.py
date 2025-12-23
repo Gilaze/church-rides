@@ -9,20 +9,26 @@ from models import User
 # Integrated watchdog disabled to prevent startup issues on Leapcell
 WATCHDOG_AVAILABLE = False
 
-# --- NEW CODE BLOCK START ---
-# Run this immediately when the app loads, so tables are created on Leapcell
-try:
-    print("Initializing Database...")
-    init_db()
-    print("Database Initialized!")
-
-
-except Exception as e:
-    print(f"Error during initialization/migration: {e}")
-# --- NEW CODE BLOCK END ---
-
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313')
+
+# Initialize database tables on first request only (not during startup)
+# This prevents startup timeout on Leapcell
+_db_initialized = False
+
+@app.before_first_request
+def initialize_database():
+    """Initialize database tables on first request, not during app startup."""
+    global _db_initialized
+    if not _db_initialized:
+        try:
+            print("Initializing Database...")
+            init_db()
+            print("Database Initialized!")
+            _db_initialized = True
+        except Exception as e:
+            print(f"Database initialization warning (tables may already exist): {e}")
+            _db_initialized = True  # Don't try again
 
 # Force HTTPS in production
 @app.before_request
