@@ -661,6 +661,68 @@ def demote_admin():
 
     return redirect(url_for('index'))
 
+@app.route('/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    """Delete user account and all associated data"""
+    confirm_username = request.form.get('confirm_username', '').strip()
+    confirm_password = request.form.get('confirm_password', '')
+
+    # Verify username matches
+    if confirm_username != current_user.username:
+        flash("Username does not match. Account deletion cancelled.")
+        return redirect(url_for('profile'))
+
+    # Verify password is correct
+    conn = get_db_connection()
+    cur = conn.cursor()
+    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+    try:
+        # Get user's password hash
+        cur.execute(f"SELECT password_hash FROM users WHERE id = {placeholder}", (current_user.id,))
+        user_row = cur.fetchone()
+
+        if not user_row or not check_password_hash(user_row['password_hash'], confirm_password):
+            flash("Incorrect password. Account deletion cancelled.")
+            return redirect(url_for('profile'))
+
+        # Delete all bookings where user is a passenger
+        cur.execute(f"DELETE FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
+
+        # If user is a driver, remove all passengers from their vehicles and delete vehicles
+        if current_user.is_driver:
+            # Get all vehicle IDs for this driver
+            cur.execute(f"SELECT id FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+            vehicle_rows = cur.fetchall()
+
+            for vehicle_row in vehicle_rows:
+                vehicle_id = vehicle_row['id']
+                # Delete all bookings for this vehicle
+                cur.execute(f"DELETE FROM bookings WHERE vehicle_id = {placeholder}", (vehicle_id,))
+
+            # Delete all vehicles owned by this user
+            cur.execute(f"DELETE FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+
+        # Finally, delete the user account
+        cur.execute(f"DELETE FROM users WHERE id = {placeholder}", (current_user.id,))
+
+        conn.commit()
+
+        # Log the user out
+        logout_user()
+
+        flash("Your account has been permanently deleted. We're sorry to see you go.")
+        return redirect(url_for('index'))
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Delete account error: {e}")
+        flash("An error occurred while deleting your account. Please try again or contact support.")
+        return redirect(url_for('profile'))
+    finally:
+        conn.close()
+
 # --- SECURITY & SEO ROUTES ---
 
 @app.route('/robots.txt')

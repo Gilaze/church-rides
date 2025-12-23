@@ -103,6 +103,38 @@
                 </div>
                 {% endif %}
 
+                <hr class="my-4">
+                <div class="danger-zone">
+                    <h5 class="text-danger mb-3">Danger Zone</h5>
+                    <p class="text-muted small mb-3">Once you delete your account, there is no going back. This action will:</p>
+                    <ul class="text-muted small mb-3">
+                        <li>Permanently delete your account and all personal information</li>
+                        <li>Remove you from any assigned rides</li>
+                        <li>Delete all your vehicles if you're a driver</li>
+                        <li>Remove all passengers from your vehicles</li>
+                    </ul>
+                    <button type="button" class="btn btn-outline-danger w-100 mb-3" onclick="toggleDeleteAccount()">
+                        Delete My Account
+                    </button>
+                    <div id="deleteAccountConfirm" style="display: none;">
+                        <div class="alert alert-danger">
+                            <strong>⚠️ Warning:</strong> This action cannot be undone!
+                        </div>
+                        <form method="POST" action="/delete_account">
+                            <div class="mb-3">
+                                <label class="form-label">Type your username to confirm: <strong>{{ user_data.username }}</strong></label>
+                                <input type="text" name="confirm_username" class="form-control" placeholder="Enter your username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Enter your password to confirm deletion</label>
+                                <input type="password" name="confirm_password" class="form-control" placeholder="Enter your password" required>
+                            </div>
+                            <button type="submit" class="btn btn-danger w-100 mb-2">Yes, Permanently Delete My Account</button>
+                            <button type="button" class="btn btn-secondary w-100" onclick="toggleDeleteAccount()">Cancel</button>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="text-center mt-3">
                     <a href="/" class="btn btn-secondary w-100">Back to Home</a>
                 </div>
@@ -128,6 +160,11 @@
             passwordField.type = 'password';
             eyeIcon.textContent = '👁️';
         }
+    }
+
+    function toggleDeleteAccount() {
+        const field = document.getElementById('deleteAccountConfirm');
+        field.style.display = field.style.display === 'none' ? 'block' : 'none';
     }
 </script>
 {% endblock %}
