@@ -2,73 +2,88 @@
 
 {% block content %}
 <style>
+    /* Default desktop styles (Bootstrap defaults apply) */
+
+    /* Mobile specific overrides */
     @media (max-width: 767px) {
         .mobile-login-container {
-            min-height: 100vh !important;
-            padding: 0 !important;
-            display: flex !important;
-            align-items: center !important;
+            /* Make the container full height to center vertically */
+            min-height: 100vh !important; 
+            padding: 1rem !important;
         }
+        
         .mobile-login-card {
-            width: 95vw !important;
-            margin: 0 auto !important;
+            width: 100% !important;
+            max-width: 400px !important; /* Prevent it from getting too wide on landscape */
         }
+
         .mobile-login-card .card {
-            min-height: 75vh !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
+            /* Remove forced min-height so it fits on small screens with keyboards */
+            height: auto !important; 
         }
+
         .mobile-login-card .card-header {
-            padding: 3rem !important;
+            padding: 1.5rem 1rem !important; /* Reduced from 3rem */
         }
+
+        .mobile-login-card h4 {
+            font-size: 1.5rem !important; /* Reduced from 2.5rem */
+        }
+
         .mobile-login-card .card-body {
-            padding: 3.5rem 2.5rem !important;
-            flex: 1 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
+            padding: 2rem 1.5rem !important; /* Reduced padding for cleaner look */
         }
+
         .mobile-login-card .form-label {
-            font-size: 1.5rem !important;
-            margin-bottom: 1rem !important;
+            font-size: 1rem !important; /* Standard readable size */
+            margin-bottom: 0.5rem !important;
             font-weight: 500 !important;
         }
+
         .mobile-login-card .form-control-lg {
-            font-size: 1.75rem !important;
-            padding: 1.25rem 1.5rem !important;
+            font-size: 1rem !important; /* 16px prevents iOS zoom on focus */
+            padding: 0.75rem 1rem !important;
             height: auto !important;
         }
+
         .mobile-login-card .btn-lg {
-            font-size: 1.875rem !important;
-            padding: 1.5rem !important;
+            font-size: 1.1rem !important; /* Reduced to fit on one line */
+            padding: 0.75rem !important;
+            font-weight: 600;
+            white-space: nowrap; /* Forces text to stay on one line */
         }
-        .mobile-login-card h4 {
-            font-size: 2.5rem !important;
-        }
+
         .mobile-login-card .form-check {
-            font-size: 1.5rem !important;
+            font-size: 1rem !important;
+            display: flex;
+            align-items: center;
         }
+
         .mobile-login-card .form-check-input {
-            width: 2rem !important;
-            height: 2rem !important;
+            width: 1.25rem !important;
+            height: 1.25rem !important;
+            margin-top: 0 !important;
+            margin-right: 0.5rem !important;
         }
+
         .mobile-login-card .card-footer {
-            padding: 2rem !important;
-            font-size: 1.25rem !important;
+            padding: 1.5rem !important;
+            font-size: 0.9rem !important;
         }
+        
         .mobile-login-card .mb-4 {
-            margin-bottom: 2rem !important;
+            margin-bottom: 1.5rem !important;
         }
     }
 </style>
-<div class="row justify-content-center align-items-center mobile-login-container" style="min-height: 75vh;">
-    <div class="col-11 col-sm-9 col-md-7 col-lg-5 mobile-login-card">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white text-center py-4">
+
+<div class="row justify-content-center align-items-center mobile-login-container">
+    <div class="col-12 col-md-7 col-lg-5 mobile-login-card">
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white text-center">
                 <h4 class="mb-0">Login</h4>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body">
                 <form method="POST">
                     <div class="mb-4">
                         <label class="form-label">Username</label>
@@ -87,8 +102,8 @@
                     <button type="submit" class="btn btn-primary btn-lg w-100">Sign In</button>
                 </form>
             </div>
-            <div class="card-footer text-center py-3">
-                <small>Need an account? <a href="/register">Register here</a></small>
+            <div class="card-footer text-center bg-white">
+                <small>Need an account? <a href="/register" class="text-decoration-none">Register here</a></small>
             </div>
         </div>
     </div>
