@@ -26,6 +26,14 @@
                         <label class="form-label">Residence</label>
                         <input type="text" name="residence" class="form-control" value="{{ user_data.residence }}" placeholder="City, State or Area" required>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number (optional)</label>
+                        <input type="tel" name="phone_number" class="form-control" value="{{ user_data.phone_number }}" placeholder="(123) 456-7890">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email (optional)</label>
+                        <input type="email" name="email" class="form-control" value="{{ user_data.email }}" placeholder="your.email@example.com">
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label">Password</label>

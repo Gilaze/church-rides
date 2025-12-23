@@ -1,0 +1,12 @@
+# robots.txt - Tells search engines this is a legitimate website
+User-agent: *
+Disallow: /admin_dashboard
+Disallow: /profile
+Disallow: /login
+Disallow: /register
+
+# Allow public pages
+Allow: /
+
+# Sitemap (optional - tells search engines about your pages)
+Sitemap: https://church-rides-gilaze7393-of35ddsq.leapcell.dev

@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Privacy Policy</h4>
+            </div>
+            <div class="card-body">
+                <h5>Information We Collect</h5>
+                <p>We collect the following information when you register:</p>
+                <ul>
+                    <li>Full name</li>
+                    <li>Username</li>
+                    <li>Grade level</li>
+                    <li>Residence location</li>
+                    <li>Password (encrypted)</li>
+                </ul>
+
+                <h5 class="mt-4">How We Use Your Information</h5>
+                <p>Your information is used solely for:</p>
+                <ul>
+                    <li>Coordinating transportation for church events</li>
+                    <li>Matching passengers with drivers</li>
+                    <li>Internal church administration</li>
+                </ul>
+
+                <h5 class="mt-4">Data Security</h5>
+                <p>We protect your information by:</p>
+                <ul>
+                    <li>Encrypting all passwords</li>
+                    <li>Using secure HTTPS connections</li>
+                    <li>Storing data on secure servers</li>
+                    <li>Limiting access to authorized administrators only</li>
+                </ul>
+
+                <h5 class="mt-4">Data Sharing</h5>
+                <p>We do NOT share your information with third parties. Your data is only visible to:</p>
+                <ul>
+                    <li>Church administrators</li>
+                    <li>Drivers you're assigned to (name and grade only)</li>
+                </ul>
+
+                <h5 class="mt-4">Your Rights</h5>
+                <p>You can:</p>
+                <ul>
+                    <li>Update your information in your profile</li>
+                    <li>Request deletion of your account by contacting an administrator</li>
+                    <li>View what data we have about you</li>
+                </ul>
+
+                <h5 class="mt-4">Contact</h5>
+                <p>If you have questions about this privacy policy, please contact a church administrator.</p>
+
+                <p class="text-muted mt-4"><small>Last updated: December 22, 2024</small></p>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            <a href="/" class="btn btn-secondary">Back to Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

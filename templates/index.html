@@ -65,6 +65,7 @@
                 <div>
                     <h5>{{ car.name }}</h5>
                     <small>Driver: {{ car.driver }}</small><br>
+                    <small class="text-muted">Phone: {{ car.driver_phone }}</small><br>
                     <small class="text-muted">Driver capacity: {{ car.driver_total_passengers }} / {{ car.driver_capacity }}</small>
                 </div>
                 {% if current_user.is_authenticated and (car.driver_id == current_user.id or current_user.is_admin) %}

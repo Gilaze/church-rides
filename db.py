@@ -34,6 +34,7 @@ def init_db():
             is_driver BOOLEAN DEFAULT FALSE,
             is_admin BOOLEAN DEFAULT FALSE,
             phone_number VARCHAR(20),
+            email VARCHAR(100),
             driver_capacity INTEGER,
             residence VARCHAR(100)
         );
@@ -67,6 +68,7 @@ def init_db():
             is_driver INTEGER DEFAULT 0,
             is_admin INTEGER DEFAULT 0,
             phone_number TEXT,
+            email TEXT,
             driver_capacity INTEGER,
             residence TEXT
         );

@@ -12,7 +12,7 @@ try:
     init_db()
     print("Database Initialized!")
 
-    # ONE-TIME MIGRATION: Add residence column to users table
+    # ONE-TIME MIGRATION: Add residence and email columns to users table
     # TODO: Remove this block after successful deployment
     import psycopg2
     from psycopg2.extras import RealDictCursor
@@ -32,6 +32,17 @@ try:
             conn.commit()
             print("✓ Residence column migration completed!")
 
+        # Add email column if it doesn't exist
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name='users' AND column_name='email';
+        """)
+        if not cur.fetchone():
+            print("Running migration: Adding email column to users...")
+            cur.execute("ALTER TABLE users ADD COLUMN email VARCHAR(100);")
+            conn.commit()
+            print("✓ Email column migration completed!")
+
         cur.close()
         conn.close()
 
@@ -41,6 +52,38 @@ except Exception as e:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313')
+
+# Force HTTPS in production
+@app.before_request
+def force_https():
+    if os.environ.get('DATABASE_URL'):  # Only in production
+        if request.url.startswith('http://'):
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
+
+# Security Headers - Make website appear safe to antivirus/browsers
+@app.after_request
+def set_security_headers(response):
+    # Prevent clickjacking attacks
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+
+    # Prevent XSS attacks
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+
+    # Enable browser XSS protection
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+
+    # Only send referrer for same-origin requests
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+    # Content Security Policy - prevents malicious scripts
+    response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' data: https:;"
+
+    # Force HTTPS for 1 year (only if using HTTPS)
+    if request.is_secure:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
+    return response
 
 # Setup Login Manager
 login_manager = LoginManager()
@@ -62,8 +105,8 @@ def index():
     placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
-        # Get all vehicles with driver capacity
-        cur.execute("SELECT v.id, v.vehicle_name, v.driver_id, u.full_name as driver_name, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id")
+        # Get all vehicles with driver capacity and phone number
+        cur.execute("SELECT v.id, v.vehicle_name, v.driver_id, u.full_name as driver_name, u.phone_number as driver_phone, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id")
         vehicles = cur.fetchall()
 
         # Group vehicles by driver to calculate total passengers per driver
@@ -90,6 +133,7 @@ def index():
                 'id': v['id'],
                 'name': v['vehicle_name'],
                 'driver': v['driver_name'],
+                'driver_phone': v['driver_phone'],
                 'driver_id': driver_id,
                 'driver_capacity': driver_capacity,
                 'driver_total_passengers': driver_totals[driver_id],
@@ -184,6 +228,8 @@ def register():
         name = request.form['full_name']
         grade = request.form['grade']
         residence = request.form['residence']
+        phone_number = request.form.get('phone_number', '').strip() or None
+        email = request.form.get('email', '').strip() or None
         is_driver = 'is_driver' in request.form
         register_as_admin = 'register_as_admin' in request.form
 
@@ -208,8 +254,8 @@ def register():
             if is_driver and request.form.get('driver_capacity'):
                 driver_capacity = int(request.form['driver_capacity'])
 
-            cur.execute(f"INSERT INTO users (username, password_hash, full_name, grade, residence, is_driver, is_admin, driver_capacity) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
-                        (username, hashed, name, grade, residence, is_driver, register_as_admin, driver_capacity))
+            cur.execute(f"INSERT INTO users (username, password_hash, full_name, grade, residence, phone_number, email, is_driver, is_admin, driver_capacity) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
+                        (username, hashed, name, grade, residence, phone_number, email, is_driver, register_as_admin, driver_capacity))
             conn.commit()
 
             # If user is a driver and provided vehicle info, create vehicle
@@ -543,6 +589,8 @@ def profile():
         username = request.form['username']
         grade = request.form['grade']
         residence = request.form['residence']
+        phone_number = request.form.get('phone_number', '').strip() or None
+        email = request.form.get('email', '').strip() or None
         password = request.form.get('password', '').strip()
 
         try:
@@ -555,12 +603,12 @@ def profile():
             if password:
                 # Update with new password
                 hashed = generate_password_hash(password)
-                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, residence = {placeholder}, driver_capacity = {placeholder}, password_hash = {placeholder} WHERE id = {placeholder}",
-                            (full_name, username, grade, residence, driver_capacity, hashed, current_user.id))
+                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, residence = {placeholder}, phone_number = {placeholder}, email = {placeholder}, driver_capacity = {placeholder}, password_hash = {placeholder} WHERE id = {placeholder}",
+                            (full_name, username, grade, residence, phone_number, email, driver_capacity, hashed, current_user.id))
             else:
                 # Update without changing password
-                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, residence = {placeholder}, driver_capacity = {placeholder} WHERE id = {placeholder}",
-                            (full_name, username, grade, residence, driver_capacity, current_user.id))
+                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, residence = {placeholder}, phone_number = {placeholder}, email = {placeholder}, driver_capacity = {placeholder} WHERE id = {placeholder}",
+                            (full_name, username, grade, residence, phone_number, email, driver_capacity, current_user.id))
             conn.commit()
 
             # Update all vehicles if user is a driver
@@ -590,7 +638,7 @@ def profile():
 
     # GET request - fetch user data
     try:
-        cur.execute(f"SELECT username, grade, residence, driver_capacity FROM users WHERE id = {placeholder}", (current_user.id,))
+        cur.execute(f"SELECT username, grade, residence, phone_number, email, driver_capacity FROM users WHERE id = {placeholder}", (current_user.id,))
         user_data = cur.fetchone()
 
         vehicles_data = []
@@ -634,6 +682,28 @@ def demote_admin():
         conn.close()
 
     return redirect(url_for('index'))
+
+# --- SECURITY & SEO ROUTES ---
+
+@app.route('/robots.txt')
+def robots_txt():
+    """Serve robots.txt to establish legitimacy with search engines"""
+    return app.send_static_file('robots.txt')
+
+@app.route('/.well-known/security.txt')
+def security_txt():
+    """Serve security.txt to show responsible security practices"""
+    return app.send_static_file('.well-known/security.txt')
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint for monitoring services"""
+    return {'status': 'healthy', 'service': 'church-rides'}, 200
+
+@app.route('/privacy')
+def privacy():
+    """Privacy policy page - establishes trust with users and antivirus"""
+    return render_template('privacy.html')
 
 if __name__ == '__main__':
     # Initialize DB tables if they don't exist
