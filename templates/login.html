@@ -2,98 +2,58 @@
 
 {% block content %}
 <style>
-    /* Default desktop styles (Bootstrap defaults apply) */
-
-    /* Mobile specific overrides */
+    /* --- Mobile Styles (< 767px) --- */
     @media (max-width: 767px) {
         .mobile-login-container {
-            /* Make the container full height to center vertically */
-            min-height: 100vh !important; 
-            padding: 1rem !important;
+            min-height: auto !important;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
         }
         
         .mobile-login-card {
             width: 100% !important;
-            max-width: 400px !important; /* Prevent it from getting too wide on landscape */
         }
 
-        .mobile-login-card .card {
-            /* Remove forced min-height so it fits on small screens with keyboards */
-            height: auto !important; 
-        }
-
-        .mobile-login-card .card-header {
-            padding: 1.5rem 1rem !important; /* Reduced from 3rem */
-        }
-
-        .mobile-login-card h4 {
-            font-size: 1.5rem !important; /* Reduced from 2.5rem */
-        }
-
-        .mobile-login-card .card-body {
-            padding: 2rem 1.5rem !important; /* Reduced padding for cleaner look */
-        }
-
-        .mobile-login-card .form-label {
-            font-size: 1rem !important; /* Standard readable size */
-            margin-bottom: 0.5rem !important;
-            font-weight: 500 !important;
-        }
-
-        .mobile-login-card .form-control-lg {
-            font-size: 1rem !important; /* 16px prevents iOS zoom on focus */
-            padding: 0.75rem 1rem !important;
-            height: auto !important;
-        }
-
-        .mobile-login-card .btn-lg {
-            font-size: 1.1rem !important; /* Reduced to fit on one line */
-            padding: 0.75rem !important;
-            font-weight: 600;
-            white-space: nowrap; /* Forces text to stay on one line */
-        }
-
-        .mobile-login-card .form-check {
-            font-size: 1rem !important;
-            display: flex;
-            align-items: center;
-        }
-
-        .mobile-login-card .form-check-input {
-            width: 1.25rem !important;
-            height: 1.25rem !important;
-            margin-top: 0 !important;
-            margin-right: 0.5rem !important;
-        }
-
-        .mobile-login-card .card-footer {
-            padding: 1.5rem !important;
-            font-size: 0.9rem !important;
-        }
+        .mobile-login-card .card { height: auto !important; }
+        .mobile-login-card .card-header { padding: 1rem !important; }
+        .mobile-login-card h4 { font-size: 1.5rem !important; }
         
-        .mobile-login-card .mb-4 {
-            margin-bottom: 1.5rem !important;
+        /* Prevent iOS zoom on input focus */
+        .mobile-login-card .form-control-lg { font-size: 16px !important; }
+        
+        /* Keep button on one line */
+        .mobile-login-card .btn-lg { white-space: nowrap; font-size: 1.1rem; }
+    }
+
+    /* --- Desktop Styles (> 768px) --- */
+    @media (min-width: 768px) {
+        .mobile-login-container {
+            /* This height forces the align-items-center to push the box lower/center */
+            min-height: 85vh !important; 
+        }
+        .mobile-login-card {
+            max-width: 450px; /* Cleaner width on Desktop */
         }
     }
 </style>
 
 <div class="row justify-content-center align-items-center mobile-login-container">
-    <div class="col-12 col-md-7 col-lg-5 mobile-login-card">
+    <div class="col-12 col-md-8 col-lg-5 mobile-login-card">
         <div class="card shadow border-0">
-            <div class="card-header bg-primary text-white text-center">
+            <div class="card-header bg-primary text-white text-center py-3">
                 <h4 class="mb-0">Login</h4>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form method="POST">
-                    <div class="mb-4">
-                        <label class="form-label">Username</label>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Username</label>
                         <input type="text" name="username" class="form-control form-control-lg" required>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label">Password</label>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Password</label>
                         <input type="password" name="password" class="form-control form-control-lg" required>
                     </div>
-                    <div class="form-check mb-4">
+                    <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" name="remember" id="rememberCheck">
                         <label class="form-check-label" for="rememberCheck">
                             Remember Me
@@ -102,7 +62,7 @@
                     <button type="submit" class="btn btn-primary btn-lg w-100">Sign In</button>
                 </form>
             </div>
-            <div class="card-footer text-center bg-white">
+            <div class="card-footer text-center bg-white py-3">
                 <small>Need an account? <a href="/register" class="text-decoration-none">Register here</a></small>
             </div>
         </div>
