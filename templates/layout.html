@@ -79,7 +79,7 @@
 
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center">
                     {% if current_user.is_authenticated %}
-                        <span class="navbar-text text-white me-3 mb-2 mb-lg-0">{{ current_user.full_name }}</span>
+                        <span class="navbar-text text-white me-3 mb-2 mb-lg-0 text-nowrap">{{ current_user.full_name }}</span>
                         <a href="/logout" class="btn btn-sm btn-light me-lg-2 mb-2 mb-lg-0 w-100 w-lg-auto">Logout</a>
                         <a href="/profile" class="d-inline-block text-center w-100 w-lg-auto">
                             <img src="{{ url_for('static', filename='pfp.svg') }}" alt="Profile" style="width: 32px; height: 32px; border-radius: 50%;">
