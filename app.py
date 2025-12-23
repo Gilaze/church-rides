@@ -12,6 +12,29 @@ try:
     init_db()
     print("Database Initialized!")
 
+    # ONE-TIME MIGRATION: Add residence column to users table
+    # TODO: Remove this block after successful deployment
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        cur = conn.cursor()
+
+        # Add residence column if it doesn't exist
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name='users' AND column_name='residence';
+        """)
+        if not cur.fetchone():
+            print("Running migration: Adding residence column to users...")
+            cur.execute("ALTER TABLE users ADD COLUMN residence VARCHAR(100);")
+            conn.commit()
+            print("✓ Residence column migration completed!")
+
+        cur.close()
+        conn.close()
+
 except Exception as e:
     print(f"Error during initialization/migration: {e}")
 # --- NEW CODE BLOCK END ---
