@@ -188,17 +188,39 @@ The service will continue monitoring and will notify you when it's back online.
         # Attach text body
         msg.attach(MIMEText(text_body, 'plain'))
 
-        # Send email
-        print(f"[{get_timestamp()}] 📧 Connecting to {SMTP_SERVER}:{SMTP_PORT}...")
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            print(f"[{get_timestamp()}] 🔐 Logging in as {SMTP_USERNAME}...")
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            print(f"[{get_timestamp()}] 📨 Sending email to {ALERT_EMAIL}...")
-            server.send_message(msg)
+        # Send email with retry logic
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            try:
+                print(f"[{get_timestamp()}] 📧 Attempt {attempt}/{max_retries}: Connecting to {SMTP_SERVER}:{SMTP_PORT}...")
 
-        print(f"[{get_timestamp()}] ✅ Alert email sent successfully to {ALERT_EMAIL}")
-        return True
+                # Create SMTP connection with timeout
+                server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30)
+                server.set_debuglevel(0)  # Set to 1 for verbose debugging
+
+                print(f"[{get_timestamp()}] 🔐 Starting TLS...")
+                server.starttls()
+
+                print(f"[{get_timestamp()}] 🔑 Logging in as {SMTP_USERNAME}...")
+                server.login(SMTP_USERNAME, SMTP_PASSWORD)
+
+                print(f"[{get_timestamp()}] 📨 Sending email to {ALERT_EMAIL}...")
+                server.send_message(msg)
+
+                server.quit()
+
+                print(f"[{get_timestamp()}] ✅ Alert email sent successfully to {ALERT_EMAIL}")
+                return True
+
+            except (OSError, smtplib.SMTPException) as e:
+                print(f"[{get_timestamp()}] ⚠️ Attempt {attempt} failed: {e}")
+                if attempt < max_retries:
+                    wait_time = attempt * 5  # Wait 5, 10, 15 seconds
+                    print(f"[{get_timestamp()}] Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"[{get_timestamp()}] ❌ All {max_retries} attempts failed")
+                    return False
 
     except smtplib.SMTPAuthenticationError as e:
         print(f"[{get_timestamp()}] ❌ SMTP Authentication failed!")
@@ -206,7 +228,9 @@ The service will continue monitoring and will notify you when it's back online.
         print(f"   Check that SMTP_PASSWORD is your Gmail App Password (16 chars, no spaces)")
         return False
     except Exception as e:
-        print(f"[{get_timestamp()}] ❌ Error sending email: {e}")
+        print(f"[{get_timestamp()}] ❌ Unexpected error sending email: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
