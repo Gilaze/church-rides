@@ -29,9 +29,13 @@ def ensure_db_initialized():
             print(f"Database initialization warning (tables may already exist): {e}")
             _db_initialized = True  # Don't try again
 
-# Force HTTPS in production
+# Force HTTPS in production and ensure DB is initialized
 @app.before_request
-def force_https():
+def before_request_handler():
+    # Initialize database on first request (any route)
+    ensure_db_initialized()
+
+    # Force HTTPS in production
     if os.environ.get('DATABASE_URL'):  # Only in production
         if request.url.startswith('http://'):
             url = request.url.replace('http://', 'https://', 1)
@@ -77,7 +81,6 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    ensure_db_initialized()  # Lazy init on first request
     conn = get_db_connection()
     cur = conn.cursor()
 
