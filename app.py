@@ -12,13 +12,12 @@ WATCHDOG_AVAILABLE = False
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313')
 
-# Initialize database tables on first request only (not during startup)
-# This prevents startup timeout on Leapcell
+# Lazy database initialization (Flask 2.3+ compatible)
+# This prevents startup timeout on Leapcell by deferring DB init
 _db_initialized = False
 
-@app.before_first_request
-def initialize_database():
-    """Initialize database tables on first request, not during app startup."""
+def ensure_db_initialized():
+    """Initialize database tables lazily on first use (not during app startup)"""
     global _db_initialized
     if not _db_initialized:
         try:
@@ -78,6 +77,7 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
+    ensure_db_initialized()  # Lazy init on first request
     conn = get_db_connection()
     cur = conn.cursor()
 
