@@ -88,47 +88,59 @@ def index():
         vehicle_passengers = {}
 
         for v in vehicles:
-            driver_id = v['driver_id']
-            vehicle_id = v['id']
+            try:
+                driver_id = v['driver_id']
+                vehicle_id = v['id']
 
-            # Get passengers for this vehicle
-            cur.execute(f"SELECT u.full_name, u.id FROM bookings b JOIN users u ON b.passenger_id = u.id WHERE b.vehicle_id = {placeholder}", (vehicle_id,))
-            passengers = cur.fetchall()
-            vehicle_passengers[vehicle_id] = passengers
+                # Get passengers for this vehicle
+                cur.execute(f"SELECT u.full_name, u.id FROM bookings b JOIN users u ON b.passenger_id = u.id WHERE b.vehicle_id = {placeholder}", (vehicle_id,))
+                passengers = cur.fetchall()
+                vehicle_passengers[vehicle_id] = passengers
 
-            # Track total passengers for this driver across all vehicles
-            if driver_id not in driver_totals:
-                driver_totals[driver_id] = 0
-            driver_totals[driver_id] += len(passengers)
+                # Track total passengers for this driver across all vehicles
+                if driver_id not in driver_totals:
+                    driver_totals[driver_id] = 0
+                driver_totals[driver_id] += len(passengers)
+            except Exception as e:
+                print(f"Error processing vehicle {v.get('id', 'unknown')}: {e}")
+                # Continue processing other vehicles
+                continue
 
         # Second pass: Build vehicle data with correct totals
         vehicles_data = []
         for v in vehicles:
-            driver_id = v['driver_id']
-            vehicle_id = v['id']
+            try:
+                driver_id = v['driver_id']
+                vehicle_id = v['id']
 
-            # Get driver capacity and total passengers (now correctly calculated)
-            driver_capacity = v['driver_capacity'] or 0
-            driver_total = driver_totals[driver_id]
+                # Get driver capacity and total passengers (now correctly calculated)
+                driver_capacity = v['driver_capacity'] or 0
+                driver_total = driver_totals.get(driver_id, 0)  # Use .get() for safety
 
-            # Check if driver is at capacity (affects ALL their vehicles)
-            is_driver_full = driver_total >= driver_capacity
+                # Check if driver is at capacity (affects ALL their vehicles)
+                is_driver_full = driver_total >= driver_capacity
 
-            vehicles_data.append({
-                'id': vehicle_id,
-                'name': v['vehicle_name'],
-                'driver': v['driver_name'],
-                'driver_phone': v['driver_phone'],
-                'driver_id': driver_id,
-                'driver_capacity': driver_capacity,
-                'driver_total_passengers': driver_total,
-                'passengers': vehicle_passengers[vehicle_id],
-                'is_full': is_driver_full
-            })
+                vehicles_data.append({
+                    'id': vehicle_id,
+                    'name': v['vehicle_name'],
+                    'driver': v['driver_name'],
+                    'driver_phone': v['driver_phone'],
+                    'driver_id': driver_id,
+                    'driver_capacity': driver_capacity,
+                    'driver_total_passengers': driver_total,
+                    'passengers': vehicle_passengers.get(vehicle_id, []),  # Use .get() for safety
+                    'is_full': is_driver_full
+                })
+            except Exception as e:
+                print(f"Error building vehicle data for {v.get('id', 'unknown')}: {e}")
+                # Continue processing other vehicles
+                continue
 
         return render_template('index.html', vehicles=vehicles_data)
     except Exception as e:
-        print(f"Index error: {e}")
+        print(f"Index route error: {e}")
+        import traceback
+        traceback.print_exc()  # Print full stack trace for debugging
         flash("Error loading rides. Please try again.")
         return render_template('index.html', vehicles=[])
     finally:
