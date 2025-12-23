@@ -5,7 +5,9 @@
       "Bash(python migrate_residence.py:*)",
       "Bash(python -m py_compile:*)",
       "Bash(del watchdog_scheduler.py)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
