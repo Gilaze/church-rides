@@ -5,6 +5,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db_connection, init_db
 from models import User
 
+# Import watchdog scheduler (runs monitoring in background)
+try:
+    from watchdog_scheduler import init_scheduler
+    WATCHDOG_AVAILABLE = True
+except ImportError:
+    WATCHDOG_AVAILABLE = False
+    print("Warning: Watchdog scheduler not available")
+
 # --- NEW CODE BLOCK START ---
 # Run this immediately when the app loads, so tables are created on Leapcell
 try:
@@ -60,6 +68,13 @@ login_manager.login_view = 'login'
 @login_manager.user_loader
 def load_user(user_id):
     return User.get(user_id)
+
+# Initialize watchdog monitoring (runs in background)
+if WATCHDOG_AVAILABLE:
+    try:
+        init_scheduler(app)
+    except Exception as e:
+        print(f"Warning: Could not start watchdog monitoring: {e}")
 
 # --- ROUTES ---
 
