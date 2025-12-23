@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python migrate_capacity_to_users.py:*)",
       "Bash(python migrate_residence.py:*)",
-      "Bash(python -m py_compile:*)"
+      "Bash(python -m py_compile:*)",
+      "Bash(del watchdog_scheduler.py)",
+      "Bash(git add:*)"
     ]
   }
 }

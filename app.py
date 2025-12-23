@@ -83,35 +83,46 @@ def index():
         cur.execute("SELECT v.id, v.vehicle_name, v.driver_id, u.full_name as driver_name, u.phone_number as driver_phone, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id")
         vehicles = cur.fetchall()
 
-        # Group vehicles by driver to calculate total passengers per driver
+        # First pass: Calculate total passengers per driver
         driver_totals = {}
-        vehicles_data = []
+        vehicle_passengers = {}
 
         for v in vehicles:
             driver_id = v['driver_id']
+            vehicle_id = v['id']
 
             # Get passengers for this vehicle
-            cur.execute(f"SELECT u.full_name, u.id FROM bookings b JOIN users u ON b.passenger_id = u.id WHERE b.vehicle_id = {placeholder}", (v['id'],))
+            cur.execute(f"SELECT u.full_name, u.id FROM bookings b JOIN users u ON b.passenger_id = u.id WHERE b.vehicle_id = {placeholder}", (vehicle_id,))
             passengers = cur.fetchall()
+            vehicle_passengers[vehicle_id] = passengers
 
             # Track total passengers for this driver across all vehicles
             if driver_id not in driver_totals:
                 driver_totals[driver_id] = 0
             driver_totals[driver_id] += len(passengers)
 
-            # Check if driver is at capacity (affects ALL their vehicles)
+        # Second pass: Build vehicle data with correct totals
+        vehicles_data = []
+        for v in vehicles:
+            driver_id = v['driver_id']
+            vehicle_id = v['id']
+
+            # Get driver capacity and total passengers (now correctly calculated)
             driver_capacity = v['driver_capacity'] or 0
-            is_driver_full = driver_totals[driver_id] >= driver_capacity
+            driver_total = driver_totals[driver_id]
+
+            # Check if driver is at capacity (affects ALL their vehicles)
+            is_driver_full = driver_total >= driver_capacity
 
             vehicles_data.append({
-                'id': v['id'],
+                'id': vehicle_id,
                 'name': v['vehicle_name'],
                 'driver': v['driver_name'],
                 'driver_phone': v['driver_phone'],
                 'driver_id': driver_id,
                 'driver_capacity': driver_capacity,
-                'driver_total_passengers': driver_totals[driver_id],
-                'passengers': passengers,
+                'driver_total_passengers': driver_total,
+                'passengers': vehicle_passengers[vehicle_id],
                 'is_full': is_driver_full
             })
 
