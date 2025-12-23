@@ -193,8 +193,8 @@ def register():
         username = request.form['username']
         pwd = request.form['password']
         name = request.form['full_name']
-        grade = request.form['grade']
-        residence = request.form['residence']
+        grade = request.form.get('grade', '').strip() or None
+        residence = request.form.get('residence', '').strip() or None
         phone_number = request.form.get('phone_number', '').strip() or None
         email = request.form.get('email', '').strip() or None
         is_driver = 'is_driver' in request.form
