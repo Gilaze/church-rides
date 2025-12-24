@@ -332,7 +332,7 @@ def admin_dashboard():
     try:
         # Get all passengers who have active bookings with their driver info
         cur.execute("""
-            SELECT u.full_name, u.residence, d.full_name as driver_name
+            SELECT u.full_name, u.residence, u.email, d.full_name as driver_name
             FROM users u
             JOIN bookings b ON u.id = b.passenger_id
             JOIN vehicles v ON b.vehicle_id = v.id
