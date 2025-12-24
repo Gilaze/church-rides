@@ -179,8 +179,8 @@ function downloadPassengersPDF() {
     const rows = [];
     const emails = [];
 
-    // Get header
-    const headers = [['Name', 'Residence', 'Email', 'Driver']];
+    // Get header (without Email column)
+    const headers = [['Name', 'Residence', 'Driver']];
 
     // Get body rows and collect emails
     const tbody = table.querySelector('tbody');
@@ -190,10 +190,9 @@ function downloadPassengersPDF() {
         const cells = tr.querySelectorAll('td');
         const email = cells[2].textContent.trim();
         const row = [
-            cells[0].textContent.trim(),
-            cells[1].textContent.trim(),
-            email,
-            cells[3].textContent.trim()
+            cells[0].textContent.trim(),  // Name
+            cells[1].textContent.trim(),  // Residence
+            cells[3].textContent.trim()   // Driver (skip email column)
         ];
         rows.push(row);
         if (email) {
@@ -219,10 +218,9 @@ function downloadPassengersPDF() {
             fontStyle: 'bold'
         },
         columnStyles: {
-            0: { cellWidth: 40 }, // Name
-            1: { cellWidth: 35 }, // Residence
-            2: { cellWidth: 60 }, // Email
-            3: { cellWidth: 40 }  // Driver
+            0: { cellWidth: 60 }, // Name
+            1: { cellWidth: 60 }, // Residence
+            2: { cellWidth: 60 }  // Driver
         }
     });
 
