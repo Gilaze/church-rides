@@ -1,4 +1,0 @@
-# Procfile for Leapcell watchdog service
-# This tells Leapcell how to run the watchdog as a worker process
-
-worker: python watchdog.py

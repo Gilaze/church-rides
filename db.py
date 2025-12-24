@@ -2,6 +2,7 @@ import os
 import sqlite3
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from contextlib import contextmanager
 
 def get_db_connection():
     database_url = os.environ.get('DATABASE_URL')
@@ -98,3 +99,15 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+@contextmanager
+def get_db():
+    """Context manager for database connections - ensures proper cleanup"""
+    conn = get_db_connection()
+    try:
+        yield conn
+    finally:
+        try:
+            conn.close()
+        except:
+            pass

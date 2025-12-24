@@ -67,13 +67,13 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    # Use the correct placeholder based on database type
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
-
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Use the correct placeholder based on database type
+        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
         # Get all vehicles with driver capacity and phone number
         cur.execute("SELECT v.id, v.vehicle_name, v.driver_id, u.full_name as driver_name, u.phone_number as driver_phone, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id")
         vehicles = cur.fetchall()
@@ -139,7 +139,11 @@ def index():
         flash("Error loading rides. Please try again.")
         return render_template('index.html', vehicles=[])
     finally:
-        conn.close()
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
 
 @app.route('/join/<int:vehicle_id>')
 @login_required
