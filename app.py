@@ -330,12 +330,14 @@ def admin_dashboard():
     placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
-        # Get all passengers who have active bookings
+        # Get all passengers who have active bookings with their driver info
         cur.execute("""
-            SELECT DISTINCT u.full_name, u.grade
+            SELECT u.full_name, u.grade, d.full_name as driver_name
             FROM users u
             JOIN bookings b ON u.id = b.passenger_id
-            ORDER BY u.full_name
+            JOIN vehicles v ON b.vehicle_id = v.id
+            JOIN users d ON v.driver_id = d.id
+            ORDER BY d.full_name, u.full_name
         """)
         passengers = cur.fetchall()
 

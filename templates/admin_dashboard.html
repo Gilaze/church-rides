@@ -6,8 +6,8 @@
 </div>
 
 <div class="row">
-    <!-- Passengers Column -->
-    <div class="col-md-4">
+    <!-- Passengers Column (Wider) -->
+    <div class="col-md-5">
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">All Passengers</h5>
@@ -18,6 +18,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Grade</th>
+                            <th>Driver</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -25,6 +26,7 @@
                         <tr>
                             <td>{{ passenger.full_name }}</td>
                             <td>{{ passenger.grade }}</td>
+                            <td>{{ passenger.driver_name }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -36,25 +38,28 @@
         </div>
     </div>
 
-    <!-- Drivers Column -->
-    <div class="col-md-4">
+    <!-- Drivers Column (Narrower, Compact) -->
+    <div class="col-md-3">
         <div class="card shadow">
             <div class="card-header bg-success text-white">
                 <h5 class="mb-0">All Drivers</h5>
             </div>
             <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
-                <table class="table table-sm">
+                <table class="table table-sm table-hover">
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Grade</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for driver in drivers %}
                         <tr>
-                            <td>{{ driver.full_name }}</td>
-                            <td>{{ driver.grade }}</td>
+                            <td>
+                                {{ driver.full_name }}
+                                {% if driver.grade %}
+                                <br><small class="text-muted">{{ driver.grade }}</small>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
