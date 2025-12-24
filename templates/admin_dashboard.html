@@ -158,7 +158,7 @@
 <script>
 function downloadPassengersPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('landscape'); // Use landscape for more columns
+    const doc = new jsPDF(); // Portrait orientation
 
     // Add title
     doc.setFontSize(18);
@@ -177,53 +177,107 @@ function downloadPassengersPDF() {
     // Get table data
     const table = document.getElementById('passengers-table');
     const rows = [];
+    const emails = [];
 
     // Get header
     const headers = [['Name', 'Residence', 'Email', 'Driver']];
 
-    // Get body rows
+    // Get body rows and collect emails
     const tbody = table.querySelector('tbody');
     const trs = tbody.querySelectorAll('tr');
 
     trs.forEach(tr => {
         const cells = tr.querySelectorAll('td');
+        const email = cells[2].textContent.trim();
         const row = [
             cells[0].textContent.trim(),
             cells[1].textContent.trim(),
-            cells[2].textContent.trim(),
+            email,
             cells[3].textContent.trim()
         ];
         rows.push(row);
+        if (email) {
+            emails.push(email);
+        }
     });
 
-    // Generate table in PDF with column-based text rendering
+    // Generate table in PDF
     doc.autoTable({
         head: headers,
         body: rows,
         startY: 35,
         theme: 'grid',
         styles: {
-            fontSize: 9,
-            cellPadding: 3,
+            fontSize: 8,
+            cellPadding: 2,
             lineColor: [200, 200, 200],
             lineWidth: 0.1
         },
         headStyles: {
             fillColor: [13, 110, 253], // Bootstrap primary blue
-            fontSize: 10,
+            fontSize: 9,
             fontStyle: 'bold'
         },
         columnStyles: {
-            0: { cellWidth: 50 }, // Name
-            1: { cellWidth: 50 }, // Residence
-            2: { cellWidth: 70 }, // Email
-            3: { cellWidth: 50 }  // Driver
-        },
-        // This ensures text is rendered in a way that allows column selection
-        didDrawCell: function(data) {
-            // Each cell is drawn independently, making column selection possible
+            0: { cellWidth: 40 }, // Name
+            1: { cellWidth: 35 }, // Residence
+            2: { cellWidth: 60 }, // Email
+            3: { cellWidth: 40 }  // Driver
         }
     });
+
+    // Get Y position after table
+    const finalY = doc.lastAutoTable.finalY + 10;
+
+    // Add email list section
+    if (emails.length > 0) {
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('All Email Addresses:', 14, finalY);
+
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+
+        // Draw a box around emails
+        const emailText = emails.join('; ');
+        const boxX = 14;
+        const boxY = finalY + 5;
+        const boxWidth = 182; // Width of portrait page minus margins
+        const lineHeight = 5;
+
+        // Split emails into lines that fit within the box
+        const words = emailText.split('; ');
+        let lines = [];
+        let currentLine = '';
+
+        words.forEach((word, index) => {
+            const testLine = currentLine + (currentLine ? '; ' : '') + word;
+            const textWidth = doc.getTextWidth(testLine);
+
+            if (textWidth > boxWidth - 4 && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+
+            if (index === words.length - 1) {
+                lines.push(currentLine);
+            }
+        });
+
+        const boxHeight = (lines.length * lineHeight) + 4;
+
+        // Draw box
+        doc.setDrawColor(13, 110, 253); // Bootstrap primary blue
+        doc.setLineWidth(0.5);
+        doc.rect(boxX, boxY, boxWidth, boxHeight);
+
+        // Add text inside box
+        lines.forEach((line, index) => {
+            doc.text(line, boxX + 2, boxY + 4 + (index * lineHeight));
+        });
+    }
 
     // Save the PDF
     doc.save('passengers_' + new Date().toISOString().split('T')[0] + '.pdf');
