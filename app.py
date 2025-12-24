@@ -343,7 +343,7 @@ def admin_dashboard():
 
         # Get all drivers who have active vehicles
         cur.execute("""
-            SELECT DISTINCT u.full_name, u.grade
+            SELECT DISTINCT u.full_name, u.grade, u.phone_number
             FROM users u
             JOIN vehicles v ON u.id = v.driver_id
             WHERE u.is_driver = TRUE
