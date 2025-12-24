@@ -11,7 +11,8 @@
       "Bash(curl:*)",
       "Bash(git restore:*)",
       "Bash(git remote:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(del migrate_db.py migrate_remember_vehicle.py migrate_capacity_to_users.py migrate_residence.py migrate_email.py)"
     ]
   }
 }
