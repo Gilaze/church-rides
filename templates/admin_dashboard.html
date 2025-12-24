@@ -235,13 +235,18 @@ function downloadPassengersPDF() {
         doc.setFont(undefined, 'bold');
         doc.text('All Email Addresses:', 14, finalY);
 
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setFont(undefined, 'normal');
+        doc.setTextColor(100, 100, 100); // Gray text
+        doc.text('(Copy and paste directly into your email service - semicolons will be ignored)', 14, finalY + 4);
+
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0); // Back to black
 
         // Draw a box around emails
         const emailText = emails.join('; ');
         const boxX = 14;
-        const boxY = finalY + 5;
+        const boxY = finalY + 8;
         const boxWidth = 182; // Width of portrait page minus margins
         const lineHeight = 5;
 
