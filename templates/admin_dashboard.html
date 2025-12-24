@@ -9,15 +9,18 @@
     <!-- Passengers Column (Wider) -->
     <div class="col-md-5">
         <div class="card shadow">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">All Passengers</h5>
+                <button onclick="downloadPassengersPDF()" class="btn btn-light btn-sm">
+                    📄 Download PDF
+                </button>
             </div>
             <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
-                <table class="table table-sm">
+                <table class="table table-sm" id="passengers-table">
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Grade</th>
+                            <th>Residence</th>
                             <th>Driver</th>
                         </tr>
                     </thead>
@@ -25,7 +28,7 @@
                         {% for passenger in passengers %}
                         <tr>
                             <td>{{ passenger.full_name }}</td>
-                            <td>{{ passenger.grade }}</td>
+                            <td>{{ passenger.residence }}</td>
                             <td>{{ passenger.driver_name }}</td>
                         </tr>
                         {% endfor %}
@@ -146,4 +149,63 @@
 <div class="text-center mt-4">
     <a href="/" class="btn btn-secondary">Back to Main Page</a>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+function downloadPassengersPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Add title
+    doc.setFontSize(18);
+    doc.text('All Passengers', 14, 20);
+
+    // Add date
+    doc.setFontSize(10);
+    const today = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    doc.text(today, 14, 28);
+
+    // Get table data
+    const table = document.getElementById('passengers-table');
+    const rows = [];
+
+    // Get header
+    const headers = [['Name', 'Residence', 'Driver']];
+
+    // Get body rows
+    const tbody = table.querySelector('tbody');
+    const trs = tbody.querySelectorAll('tr');
+
+    trs.forEach(tr => {
+        const cells = tr.querySelectorAll('td');
+        const row = [
+            cells[0].textContent.trim(),
+            cells[1].textContent.trim(),
+            cells[2].textContent.trim()
+        ];
+        rows.push(row);
+    });
+
+    // Generate table in PDF
+    doc.autoTable({
+        head: headers,
+        body: rows,
+        startY: 35,
+        theme: 'grid',
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [13, 110, 253] } // Bootstrap primary blue
+    });
+
+    // Save the PDF
+    doc.save('passengers_' + new Date().toISOString().split('T')[0] + '.pdf');
+}
+</script>
+
 {% endblock %}
