@@ -13,11 +13,14 @@ app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313'
 
 # Initialize database tables (happens once at module load)
 # Tables are created if they don't exist, no-op if they do
+print("🔧 Initializing database tables...")
 try:
     init_db()
+    print("✅ Database tables initialized successfully")
 except Exception as e:
     # Tables likely already exist, continue
-    print(f"DB Init (non-critical): {e}")
+    print(f"⚠️ DB Init (non-critical): {e}")
+    print("✅ Continuing with existing database")
 
 # Force HTTPS in production
 @app.before_request
