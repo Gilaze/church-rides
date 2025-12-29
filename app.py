@@ -11,16 +11,19 @@ WATCHDOG_AVAILABLE = False
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313')
 
-# Initialize database tables (happens once at module load)
-# Tables are created if they don't exist, no-op if they do
-print("🔧 Initializing database tables...")
-try:
-    init_db()
-    print("✅ Database tables initialized successfully")
-except Exception as e:
-    # Tables likely already exist, continue
-    print(f"⚠️ DB Init (non-critical): {e}")
-    print("✅ Continuing with existing database")
+# Initialize database tables only in local development (SQLite)
+# In production (Leapcell/serverless), skip to avoid cold start overhead
+if not os.environ.get('DATABASE_URL'):
+    # Local development with SQLite - auto-create tables
+    print("🔧 Initializing local SQLite database...")
+    try:
+        init_db()
+        print("✅ Local database initialized")
+    except Exception as e:
+        print(f"⚠️ DB Init: {e}")
+else:
+    # Production (PostgreSQL) - tables already exist, skip init for performance
+    print("✅ Using production database (skipping init for serverless optimization)")
 
 # Force HTTPS in production
 @app.before_request
