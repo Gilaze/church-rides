@@ -75,64 +75,65 @@ def index():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Use the correct placeholder based on database type
-        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
-        # Get all vehicles with driver capacity and phone number
-        cur.execute("SELECT v.id, v.vehicle_name, v.driver_id, u.full_name as driver_name, u.phone_number as driver_phone, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id")
-        vehicles = cur.fetchall()
+        # OPTIMIZED: Single query with JOIN to get all data at once (eliminates N+1 query problem)
+        cur.execute("""
+            SELECT
+                v.id as vehicle_id,
+                v.vehicle_name,
+                v.driver_id,
+                u.full_name as driver_name,
+                u.phone_number as driver_phone,
+                u.driver_capacity,
+                p.full_name as passenger_name,
+                p.id as passenger_id
+            FROM vehicles v
+            JOIN users u ON v.driver_id = u.id
+            LEFT JOIN bookings b ON b.vehicle_id = v.id
+            LEFT JOIN users p ON b.passenger_id = p.id
+            ORDER BY u.full_name, v.vehicle_name, p.full_name
+        """)
+        rows = cur.fetchall()
 
-        # First pass: Calculate total passengers per driver
+        # Process results into structured data
+        vehicles_dict = {}
         driver_totals = {}
-        vehicle_passengers = {}
 
-        for v in vehicles:
-            try:
-                driver_id = v['driver_id']
-                vehicle_id = v['id']
+        for row in rows:
+            vehicle_id = row['vehicle_id']
+            driver_id = row['driver_id']
 
-                # Get passengers for this vehicle
-                cur.execute(f"SELECT u.full_name, u.id FROM bookings b JOIN users u ON b.passenger_id = u.id WHERE b.vehicle_id = {placeholder}", (vehicle_id,))
-                passengers = cur.fetchall()
-                vehicle_passengers[vehicle_id] = passengers
-
-                # Track total passengers for this driver across all vehicles
-                if driver_id not in driver_totals:
-                    driver_totals[driver_id] = 0
-                driver_totals[driver_id] += len(passengers)
-            except Exception as e:
-                print(f"Error processing vehicle {v.get('id', 'unknown')}: {e}")
-                # Continue processing other vehicles
-                continue
-
-        # Second pass: Build vehicle data with correct totals
-        vehicles_data = []
-        for v in vehicles:
-            try:
-                driver_id = v['driver_id']
-                vehicle_id = v['id']
-
-                # Get driver capacity and total passengers (now correctly calculated)
-                driver_capacity = v['driver_capacity'] or 0
-                driver_total = driver_totals.get(driver_id, 0)  # Use .get() for safety
-
-                # Check if driver is at capacity (affects ALL their vehicles)
-                is_driver_full = driver_total >= driver_capacity
-
-                vehicles_data.append({
+            # Initialize vehicle if not seen before
+            if vehicle_id not in vehicles_dict:
+                vehicles_dict[vehicle_id] = {
                     'id': vehicle_id,
-                    'name': v['vehicle_name'],
-                    'driver': v['driver_name'],
-                    'driver_phone': v['driver_phone'],
+                    'name': row['vehicle_name'],
+                    'driver': row['driver_name'],
+                    'driver_phone': row['driver_phone'],
                     'driver_id': driver_id,
-                    'driver_capacity': driver_capacity,
-                    'driver_total_passengers': driver_total,
-                    'passengers': vehicle_passengers.get(vehicle_id, []),  # Use .get() for safety
-                    'is_full': is_driver_full
-                })
-            except Exception as e:
-                print(f"Error building vehicle data for {v.get('id', 'unknown')}: {e}")
-                # Continue processing other vehicles
-                continue
+                    'driver_capacity': row['driver_capacity'] or 0,
+                    'passengers': []
+                }
+                driver_totals[driver_id] = 0
+
+            # Add passenger if exists
+            if row['passenger_id']:
+                passenger = {
+                    'full_name': row['passenger_name'],
+                    'id': row['passenger_id']
+                }
+                # Avoid duplicates (in case of data issues)
+                if passenger not in vehicles_dict[vehicle_id]['passengers']:
+                    vehicles_dict[vehicle_id]['passengers'].append(passenger)
+                    driver_totals[driver_id] += 1
+
+        # Add driver totals and capacity check to each vehicle
+        vehicles_data = []
+        for vehicle in vehicles_dict.values():
+            driver_id = vehicle['driver_id']
+            driver_total = driver_totals.get(driver_id, 0)
+            vehicle['driver_total_passengers'] = driver_total
+            vehicle['is_full'] = driver_total >= vehicle['driver_capacity']
+            vehicles_data.append(vehicle)
 
         return render_template('index.html', vehicles=vehicles_data)
     except Exception as e:
@@ -355,33 +356,21 @@ def admin_dashboard():
         cur.execute("SELECT full_name, grade, residence, phone_number, email FROM users ORDER BY full_name")
         all_users = cur.fetchall()
 
-        # Get all vehicles with driver info and calculate occupied capacity
-        cur.execute("SELECT v.vehicle_name, v.driver_id, u.full_name as driver_name, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id")
-        vehicles_raw = cur.fetchall()
-
-        # Calculate occupied capacity for each driver
-        driver_occupied = {}
-        for vehicle in vehicles_raw:
-            driver_id = vehicle['driver_id']
-            if driver_id not in driver_occupied:
-                # Count total passengers for this driver across all vehicles
-                cur.execute(f"""
-                    SELECT COUNT(*) as count FROM bookings b
-                    JOIN vehicles v ON b.vehicle_id = v.id
-                    WHERE v.driver_id = {placeholder}
-                """, (driver_id,))
-                count_result = cur.fetchone()
-                driver_occupied[driver_id] = count_result['count'] if count_result else 0
-
-        # Add occupied capacity to each vehicle
-        vehicles = []
-        for vehicle in vehicles_raw:
-            vehicles.append({
-                'vehicle_name': vehicle['vehicle_name'],
-                'driver_name': vehicle['driver_name'],
-                'driver_capacity': vehicle['driver_capacity'],
-                'driver_occupied': driver_occupied.get(vehicle['driver_id'], 0)
-            })
+        # OPTIMIZED: Single query with GROUP BY to get vehicle capacity (eliminates N+1 query problem)
+        cur.execute("""
+            SELECT
+                v.vehicle_name,
+                v.driver_id,
+                d.full_name as driver_name,
+                d.driver_capacity,
+                COUNT(b.id) as driver_occupied
+            FROM vehicles v
+            JOIN users d ON v.driver_id = d.id
+            LEFT JOIN bookings b ON b.vehicle_id = v.id
+            GROUP BY v.id, v.vehicle_name, v.driver_id, d.full_name, d.driver_capacity
+            ORDER BY d.full_name, v.vehicle_name
+        """)
+        vehicles = cur.fetchall()
 
         return render_template('admin_dashboard.html', passengers=passengers, drivers=drivers, vehicles=vehicles, all_users=all_users)
     except Exception as e:
@@ -780,9 +769,6 @@ def privacy():
     return render_template('privacy.html')
 
 if __name__ == '__main__':
-    # Initialize DB tables if they don't exist
-    try:
-        init_db() 
-    except Exception as e:
-        print(f"DB Init Warning (ignore if using existing DB): {e}")
+    # DB already initialized at module level (line 18)
+    # No need to initialize again here
     app.run(debug=True)
