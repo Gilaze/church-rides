@@ -1,5 +1,5 @@
 from flask_login import UserMixin
-from db import get_db_connection
+from db import get_db_connection, release_db_connection
 
 class User(UserMixin):
     def __init__(self, id, username, full_name, is_driver, is_admin=False):
@@ -21,7 +21,7 @@ class User(UserMixin):
 
             cur.execute(f"SELECT * FROM users WHERE id = {placeholder}", (user_id,))
             user_data = cur.fetchone()
-            conn.close()
+            release_db_connection(conn)
             if not user_data:
                 return None
             return User(user_data['id'], user_data['username'], user_data['full_name'], user_data['is_driver'], user_data.get('is_admin', False))
@@ -48,4 +48,4 @@ class Driver(User):
         cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, capacity) VALUES ({placeholder}, {placeholder}, {placeholder})",
                     (self.id, vehicle_name, capacity))
         conn.commit()
-        conn.close()
+        release_db_connection(conn)

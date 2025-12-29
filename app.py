@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from db import get_db_connection, init_db
+from db import get_db_connection, init_db, release_db_connection
 from models import User
 
 # Watchdog monitoring is now handled externally
@@ -147,10 +147,7 @@ def index():
         return render_template('index.html', vehicles=[])
     finally:
         if conn:
-            try:
-                conn.close()
-            except:
-                pass
+            release_db_connection(conn)
 
 @app.route('/join/<int:vehicle_id>')
 @login_required
@@ -197,7 +194,7 @@ def join_ride(vehicle_id):
         print(f"Join ride error: {e}")
         flash(f"Error joining ride: {str(e)}")
     finally:
-        conn.close()
+        release_db_connection(conn)
 
     return redirect(url_for('index'))
 
@@ -217,7 +214,7 @@ def leave_ride():
         print(f"Leave ride error: {e}")
         flash("Error leaving ride. Please try again.")
     finally:
-        conn.close()
+        release_db_connection(conn)
 
     return redirect(url_for('index'))
 
@@ -273,11 +270,11 @@ def register():
                             (user_id, vehicle_name, False))
                 conn.commit()
 
-            conn.close()
+            release_db_connection(conn)
             flash("Registration successful! Please log in.")
             return redirect(url_for('login'))
         except Exception as e:
-            conn.close()
+            release_db_connection(conn)
             print(f"Registration error: {e}")  # Log the actual error
             flash("Username taken or registration error. Please try again.")
 
@@ -313,7 +310,7 @@ def login():
             print(f"Login error: {e}")
             flash("Login error. Please try again.")
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     return render_template('login.html')
 
@@ -381,7 +378,7 @@ def admin_dashboard():
         flash("Error loading admin dashboard.")
         return redirect(url_for('index'))
     finally:
-        conn.close()
+        release_db_connection(conn)
 
 @app.route('/become_admin', methods=['POST'])
 @login_required
@@ -410,7 +407,7 @@ def become_admin():
         print(f"Become admin error: {e}")
         flash("Error upgrading to admin. Please try again.")
     finally:
-        conn.close()
+        release_db_connection(conn)
 
     return redirect(url_for('profile'))
 
@@ -441,7 +438,7 @@ def add_vehicle():
         print(f"Add vehicle error: {e}")
         flash("Error adding vehicle. Please try again.")
     finally:
-        conn.close()
+        release_db_connection(conn)
 
     return render_template('add_vehicle.html')
 
@@ -477,7 +474,7 @@ def remove_vehicle(vehicle_id):
         print(f"Remove vehicle error: {e}")
         flash("Error removing vehicle. Please try again.")
     finally:
-        conn.close()
+        release_db_connection(conn)
 
     return redirect(url_for('index'))
 
@@ -502,7 +499,7 @@ def remove_passenger(vehicle_id, passenger_id):
         print(f"Remove passenger error: {e}")
         flash("Error removing passenger. Please try again.")
     finally:
-        conn.close()
+        release_db_connection(conn)
 
     return redirect(url_for('index'))
 
@@ -538,7 +535,7 @@ def upgrade_to_driver():
             print(f"Upgrade to driver error: {e}")
             flash("Error upgrading account. Please try again.")
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     return render_template('upgrade_to_driver.html')
 
@@ -577,7 +574,7 @@ def downgrade_to_passenger():
         print(f"Downgrade to passenger error: {e}")
         flash("Error changing account status. Please try again.")
     finally:
-        conn.close()
+        release_db_connection(conn)
 
     return redirect(url_for('index'))
 
@@ -638,7 +635,7 @@ def profile():
             print(f"Profile update error: {e}")
             flash("Error updating profile. Username may already be taken.")
         finally:
-            conn.close()
+            release_db_connection(conn)
 
     # GET request - fetch user data
     try:
@@ -656,7 +653,7 @@ def profile():
         flash("Error loading profile.")
         return redirect(url_for('index'))
     finally:
-        conn.close()
+        release_db_connection(conn)
 
 @app.route('/demote_admin', methods=['POST'])
 @login_required
@@ -683,7 +680,7 @@ def demote_admin():
         print(f"Demote admin error: {e}")
         flash("Error removing admin privileges. Please try again.")
     finally:
-        conn.close()
+        release_db_connection(conn)
 
     return redirect(url_for('index'))
 
@@ -747,7 +744,7 @@ def delete_account():
         flash("An error occurred while deleting your account. Please try again or contact support.")
         return redirect(url_for('profile'))
     finally:
-        conn.close()
+        release_db_connection(conn)
 
 # --- SECURITY & SEO ROUTES ---
 

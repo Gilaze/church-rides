@@ -2,24 +2,99 @@ import os
 import sqlite3
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2 import pool
 from contextlib import contextmanager
+import time
+
+# PostgreSQL connection pool for production (prevents connection exhaustion)
+_pg_pool = None
+
+def _get_pg_pool():
+    """Get or create PostgreSQL connection pool (singleton pattern)"""
+    global _pg_pool
+    if _pg_pool is None:
+        database_url = os.environ.get('DATABASE_URL')
+        if database_url:
+            # Create connection pool with 2-10 connections
+            # Leapcell free tier can handle this range
+            _pg_pool = pool.SimpleConnectionPool(
+                minconn=2,  # Minimum connections
+                maxconn=10,  # Maximum connections (safe for free tier)
+                dsn=database_url,
+                cursor_factory=RealDictCursor,
+                connect_timeout=10,
+                options='-c statement_timeout=30000'
+            )
+    return _pg_pool
 
 def get_db_connection():
+    """Get database connection with retry logic for SQLite locking issues"""
     database_url = os.environ.get('DATABASE_URL')
 
     if database_url:
-        # Production (Leapcell/PostgreSQL) with connection timeout
-        conn = psycopg2.connect(
-            database_url,
-            cursor_factory=RealDictCursor,
-            connect_timeout=10,  # 10 second connection timeout
-            options='-c statement_timeout=30000'  # 30 second query timeout
-        )
+        # Production (Leapcell/PostgreSQL) - use connection pooling
+        pg_pool = _get_pg_pool()
+        if pg_pool:
+            try:
+                conn = pg_pool.getconn()
+                return conn
+            except pool.PoolError:
+                # Pool exhausted, fall back to direct connection
+                return psycopg2.connect(
+                    database_url,
+                    cursor_factory=RealDictCursor,
+                    connect_timeout=10,
+                    options='-c statement_timeout=30000'
+                )
     else:
-        # Development (Local SQLite)
-        conn = sqlite3.connect('church_ride.db', timeout=10)
-        conn.row_factory = sqlite3.Row
+        # Development (Local SQLite) - with retry logic for rapid clicks
+        max_retries = 5
+        retry_delay = 0.1  # 100ms between retries
+
+        for attempt in range(max_retries):
+            try:
+                conn = sqlite3.connect(
+                    'church_ride.db',
+                    timeout=30,  # Increased from 10 to 30 seconds
+                    isolation_level='DEFERRED',  # Less aggressive locking
+                    check_same_thread=False  # Allow multi-threaded access
+                )
+                conn.row_factory = sqlite3.Row
+                # Enable WAL mode for better concurrent access
+                conn.execute('PRAGMA journal_mode=WAL')
+                return conn
+            except sqlite3.OperationalError as e:
+                if 'database is locked' in str(e) and attempt < max_retries - 1:
+                    # Database locked, retry after brief delay
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                    continue
+                else:
+                    # Max retries exceeded or different error
+                    raise
+
     return conn
+
+def release_db_connection(conn):
+    """Properly release database connection back to pool or close it"""
+    database_url = os.environ.get('DATABASE_URL')
+
+    if database_url and _pg_pool:
+        # Return connection to pool
+        try:
+            _pg_pool.putconn(conn)
+        except:
+            # If pool is full or error, just close it
+            try:
+                conn.close()
+            except:
+                pass
+    else:
+        # SQLite - just close normally
+        try:
+            conn.close()
+        except:
+            pass
 
 def init_db():
     conn = get_db_connection()
