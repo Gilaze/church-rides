@@ -352,7 +352,7 @@ def admin_dashboard():
         drivers = cur.fetchall()
 
         # Get all users
-        cur.execute("SELECT full_name, username, grade, residence, phone_number, email FROM users ORDER BY full_name")
+        cur.execute("SELECT full_name, grade, residence, phone_number, email FROM users ORDER BY full_name")
         all_users = cur.fetchall()
 
         # Get all vehicles with driver info and calculate occupied capacity
