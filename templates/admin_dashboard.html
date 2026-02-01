@@ -106,15 +106,15 @@
     <div class="col-md-4">
         <div class="card shadow">
             <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0">All Vehicles</h5>
+                <h5 class="mb-0">All Pickup Locations</h5>
             </div>
             <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
                 <table class="table table-sm">
                     <thead>
                         <tr>
-                            <th>Vehicle Name</th>
+                            <th>Pickup Location</th>
                             <th>Driver</th>
-                            <th>Capacity</th>
+                            <th>Passengers</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -122,13 +122,13 @@
                         <tr>
                             <td>{{ vehicle.vehicle_name }}</td>
                             <td>{{ vehicle.driver_name }}</td>
-                            <td>{{ vehicle.driver_occupied }} / {{ vehicle.driver_capacity }}</td>
+                            <td>{{ vehicle.driver_occupied }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
                 {% if vehicles|length == 0 %}
-                    <p class="text-muted text-center">No vehicles yet.</p>
+                    <p class="text-muted text-center">No pickup locations yet.</p>
                 {% endif %}
             </div>
         </div>
