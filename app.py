@@ -10,9 +10,9 @@ app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313'
 
 # --- CONFIGURATION ---
 
-# 1. Define the DB_DB_PLACEHOLDER Globally
+# 1. Define the DB_PLACEHOLDER Globally
 # This checks if we are on Heroku/Railway (Postgres uses %s) or Local (SQLite uses ?)
-DB_DB_PLACEHOLDER = "%s" if os.environ.get('DATABASE_URL') else "?"
+DB_PLACEHOLDER = "%s" if os.environ.get('DATABASE_URL') else "?"
 
 # 2. New way (Strict security)
 # This says: "If the computer doesn't have an ADMIN_PASSWORD variable, CRASH immediately."
@@ -181,12 +181,12 @@ def join_ride(vehicle_id):
 
     try:
         # Check if already booked
-        cur.execute(f"SELECT * FROM bookings WHERE passenger_id = {DB_DB_PLACEHOLDER}", (current_user.id,))
+        cur.execute(f"SELECT * FROM bookings WHERE passenger_id = {DB_PLACEHOLDER}", (current_user.id,))
         if cur.fetchone():
             flash("You already have a ride! Leave it first.")
         else:
             # Get vehicle and driver info
-            cur.execute(f"SELECT v.driver_id, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id WHERE v.id = {DB_DB_PLACEHOLDER}", (vehicle_id,))
+            cur.execute(f"SELECT v.driver_id, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id WHERE v.id = {DB_PLACEHOLDER}", (vehicle_id,))
             vehicle = cur.fetchone()
 
             if not vehicle:
@@ -340,7 +340,7 @@ def admin_dashboard():
 
     conn = get_db_connection()
     cur = conn.cursor()
-    # No need to define DB_PLACEHOLDER, use DB_DB_PLACEHOLDER
+    # No need to define DB_PLACEHOLDER, use 
 
     try:
         # 1. Get Active Passengers (Keep this)
