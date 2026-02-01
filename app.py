@@ -14,10 +14,17 @@ app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313'
 # This checks if we are on Heroku/Railway (Postgres uses %s) or Local (SQLite uses ?)
 DB_DB_PLACEHOLDER = "%s" if os.environ.get('DATABASE_URL') else "?"
 
-# 2. Secure Admin Password
-# Looks for an environment variable named 'ADMIN_PASSWORD'. 
-# If not found, defaults to 'berkeley' (for local testing).
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'berkeley')
+# 2. New way (Strict security)
+# This says: "If the computer doesn't have an ADMIN_PASSWORD variable, CRASH immediately."
+# This is good because it forces you to set up security correctly.
+import os
+
+try:
+    ADMIN_PASSWORD = os.environ['ADMIN_PASSWORD']
+except KeyError:
+    # If running locally without setup, you can either print a warning or crash
+    print("⚠️  WARNING: ADMIN_PASSWORD not set! Admin features will not work.")
+    ADMIN_PASSWORD = None
 
 # Watchdog monitoring is now handled externally
 WATCHDOG_AVAILABLE = False
