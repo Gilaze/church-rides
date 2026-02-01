@@ -5,11 +5,22 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db_connection, init_db, release_db_connection
 from models import User
 
-# Watchdog monitoring is now handled externally
-WATCHDOG_AVAILABLE = False
-
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'f557d923d5679644c2b94cd0ad194313')
+
+# --- CONFIGURATION ---
+
+# 1. Define the DB_DB_PLACEHOLDER Globally
+# This checks if we are on Heroku/Railway (Postgres uses %s) or Local (SQLite uses ?)
+DB_DB_PLACEHOLDER = "%s" if os.environ.get('DATABASE_URL') else "?"
+
+# 2. Secure Admin Password
+# Looks for an environment variable named 'ADMIN_PASSWORD'. 
+# If not found, defaults to 'berkeley' (for local testing).
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'berkeley')
+
+# Watchdog monitoring is now handled externally
+WATCHDOG_AVAILABLE = False
 
 # Initialize database tables only in local development (SQLite)
 # In production (Leapcell/serverless), skip to avoid cold start overhead
@@ -116,7 +127,13 @@ def index():
                     'driver_capacity': row['driver_capacity'] or 0,
                     'passengers': []
                 }
-                driver_totals[driver_id] = 0
+                
+                # --- FIX STARTS HERE ---
+                # Only initialize driver total if we haven't seen this DRIVER before.
+                # Do not reset it just because we found a new vehicle.
+                if driver_id not in driver_totals:
+                    driver_totals[driver_id] = 0
+                # --- FIX ENDS HERE ---
 
             # Add passenger if exists
             if row['passenger_id']:
@@ -155,17 +172,14 @@ def join_ride(vehicle_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Use the correct placeholder based on database type
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
-
     try:
         # Check if already booked
-        cur.execute(f"SELECT * FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
+        cur.execute(f"SELECT * FROM bookings WHERE passenger_id = {DB_DB_PLACEHOLDER}", (current_user.id,))
         if cur.fetchone():
             flash("You already have a ride! Leave it first.")
         else:
             # Get vehicle and driver info
-            cur.execute(f"SELECT v.driver_id, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id WHERE v.id = {placeholder}", (vehicle_id,))
+            cur.execute(f"SELECT v.driver_id, u.driver_capacity FROM vehicles v JOIN users u ON v.driver_id = u.id WHERE v.id = {DB_DB_PLACEHOLDER}", (vehicle_id,))
             vehicle = cur.fetchone()
 
             if not vehicle:
@@ -179,7 +193,7 @@ def join_ride(vehicle_id):
             cur.execute(f"""
                 SELECT COUNT(*) as count FROM bookings b
                 JOIN vehicles v ON b.vehicle_id = v.id
-                WHERE v.driver_id = {placeholder}
+                WHERE v.driver_id = {DB_PLACEHOLDER}
             """, (driver_id,))
             count_result = cur.fetchone()
             current_count = count_result['count'] if count_result else 0
@@ -187,7 +201,7 @@ def join_ride(vehicle_id):
             if current_count >= driver_capacity:
                 flash("This driver is at full capacity.")
             else:
-                cur.execute(f"INSERT INTO bookings (passenger_id, vehicle_id) VALUES ({placeholder}, {placeholder})", (current_user.id, vehicle_id))
+                cur.execute(f"INSERT INTO bookings (passenger_id, vehicle_id) VALUES ({DB_PLACEHOLDER}, {DB_PLACEHOLDER})", (current_user.id, vehicle_id))
                 conn.commit()
                 flash("You've been added to the ride!")
     except Exception as e:
@@ -204,11 +218,8 @@ def leave_ride():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Use the correct placeholder based on database type
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
-
     try:
-        cur.execute(f"DELETE FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
+        cur.execute(f"DELETE FROM bookings WHERE passenger_id = {DB_PLACEHOLDER}", (current_user.id,))
         conn.commit()
     except Exception as e:
         print(f"Leave ride error: {e}")
@@ -245,16 +256,13 @@ def register():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Use the correct placeholder based on database type
-        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
-
         try:
             # Get driver capacity if user is a driver
             driver_capacity = None
             if is_driver and request.form.get('driver_capacity'):
                 driver_capacity = int(request.form['driver_capacity'])
 
-            cur.execute(f"INSERT INTO users (username, password_hash, full_name, grade, residence, phone_number, email, is_driver, is_admin, driver_capacity) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
+            cur.execute(f"INSERT INTO users (username, password_hash, full_name, grade, residence, phone_number, email, is_driver, is_admin, driver_capacity) VALUES ({DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER})",
                         (username, hashed, name, grade, residence, phone_number, email, is_driver, register_as_admin, driver_capacity))
             conn.commit()
 
@@ -263,10 +271,10 @@ def register():
                 vehicle_name = request.form['vehicle_name']
 
                 # Get the newly created user's ID
-                cur.execute(f"SELECT id FROM users WHERE username = {placeholder}", (username,))
+                cur.execute(f"SELECT id FROM users WHERE username = {DB_PLACEHOLDER}", (username,))
                 user_id = cur.fetchone()['id']
 
-                cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, remember_vehicle) VALUES ({placeholder}, {placeholder}, {placeholder})",
+                cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, remember_vehicle) VALUES ({DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER})",
                             (user_id, vehicle_name, False))
                 conn.commit()
 
@@ -289,11 +297,8 @@ def login():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Use the correct placeholder based on database type
-        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
-
         try:
-            cur.execute(f"SELECT * FROM users WHERE username = {placeholder}", (username,))
+            cur.execute(f"SELECT * FROM users WHERE username = {DB_PLACEHOLDER}", (username,))
             user = cur.fetchone()
 
             if user and check_password_hash(user['password_hash'], pwd):
@@ -328,10 +333,10 @@ def admin_dashboard():
 
     conn = get_db_connection()
     cur = conn.cursor()
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
+    # No need to define DB_PLACEHOLDER, use DB_DB_PLACEHOLDER
 
     try:
-        # Get all passengers who have active bookings with their driver info
+        # 1. Get Active Passengers (Keep this)
         cur.execute("""
             SELECT u.full_name, u.residence, u.email, d.full_name as driver_name
             FROM users u
@@ -342,7 +347,7 @@ def admin_dashboard():
         """)
         passengers = cur.fetchall()
 
-        # Get all drivers who have active vehicles
+        # 2. Get Active Drivers (Keep this)
         cur.execute("""
             SELECT DISTINCT u.full_name, u.grade, u.phone_number
             FROM users u
@@ -352,11 +357,22 @@ def admin_dashboard():
         """)
         drivers = cur.fetchall()
 
-        # Get all users
-        cur.execute("SELECT full_name, grade, residence, phone_number, email FROM users ORDER BY full_name")
-        all_users = cur.fetchall()
+        # 3. OPTIMIZED: Get "Inactive Users" instead of "All Users"
+        # We only want users who are NOT in the bookings table AND are NOT drivers with vehicles
+        # This prevents duplicate info on the screen and reduces data load.
+        cur.execute("""
+            SELECT u.full_name, u.grade, u.residence, u.phone_number, u.email 
+            FROM users u
+            LEFT JOIN bookings b ON u.id = b.passenger_id
+            LEFT JOIN vehicles v ON u.id = v.driver_id
+            WHERE b.id IS NULL        -- Not a passenger
+            AND v.id IS NULL          -- Not a driver with a vehicle
+            ORDER BY u.full_name
+        """)
+        inactive_users = cur.fetchall()
 
-        # OPTIMIZED: Single query with GROUP BY to get vehicle capacity (eliminates N+1 query problem)
+        # 4. Vehicles (Keep this)
+        # ... existing vehicle query ...
         cur.execute("""
             SELECT
                 v.vehicle_name,
@@ -372,7 +388,12 @@ def admin_dashboard():
         """)
         vehicles = cur.fetchall()
 
-        return render_template('admin_dashboard.html', passengers=passengers, drivers=drivers, vehicles=vehicles, all_users=all_users)
+        # Pass 'inactive_users' instead of 'all_users'
+        return render_template('admin_dashboard.html', 
+                             passengers=passengers, 
+                             drivers=drivers, 
+                             vehicles=vehicles, 
+                             all_users=inactive_users) # Renaming it here so HTML doesn't break
     except Exception as e:
         print(f"Admin dashboard error: {e}")
         flash("Error loading admin dashboard.")
@@ -391,11 +412,10 @@ def become_admin():
 
     conn = get_db_connection()
     cur = conn.cursor()
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
         # Update user's admin status in database
-        cur.execute(f"UPDATE users SET is_admin = {placeholder} WHERE id = {placeholder}",
+        cur.execute(f"UPDATE users SET is_admin = {DB_PLACEHOLDER} WHERE id = {DB_PLACEHOLDER}",
                     (True, current_user.id))
         conn.commit()
 
@@ -422,14 +442,13 @@ def add_vehicle():
 
     conn = get_db_connection()
     cur = conn.cursor()
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
         if request.method == 'POST':
             vehicle_name = request.form['vehicle_name']
             remember_vehicle = 'remember_vehicle' in request.form
 
-            cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, remember_vehicle) VALUES ({placeholder}, {placeholder}, {placeholder})",
+            cur.execute(f"INSERT INTO vehicles (driver_id, vehicle_name, remember_vehicle) VALUES ({DB_PLACEHOLDER}, {DB_PLACEHOLDER}, {DB_PLACEHOLDER})",
                         (current_user.id, vehicle_name, remember_vehicle))
             conn.commit()
             flash("Vehicle added successfully!")
@@ -447,11 +466,10 @@ def add_vehicle():
 def remove_vehicle(vehicle_id):
     conn = get_db_connection()
     cur = conn.cursor()
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
         # Get vehicle info
-        cur.execute(f"SELECT driver_id FROM vehicles WHERE id = {placeholder}", (vehicle_id,))
+        cur.execute(f"SELECT driver_id FROM vehicles WHERE id = {DB_PLACEHOLDER}", (vehicle_id,))
         vehicle = cur.fetchone()
 
         if not vehicle:
@@ -464,10 +482,10 @@ def remove_vehicle(vehicle_id):
             return redirect(url_for('index'))
 
         # Delete all bookings for this vehicle first
-        cur.execute(f"DELETE FROM bookings WHERE vehicle_id = {placeholder}", (vehicle_id,))
+        cur.execute(f"DELETE FROM bookings WHERE vehicle_id = {DB_PLACEHOLDER}", (vehicle_id,))
 
         # Delete the vehicle
-        cur.execute(f"DELETE FROM vehicles WHERE id = {placeholder}", (vehicle_id,))
+        cur.execute(f"DELETE FROM vehicles WHERE id = {DB_PLACEHOLDER}", (vehicle_id,))
         conn.commit()
         flash("Vehicle removed successfully!")
     except Exception as e:
@@ -488,10 +506,9 @@ def remove_passenger(vehicle_id, passenger_id):
 
     conn = get_db_connection()
     cur = conn.cursor()
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
-        cur.execute(f"DELETE FROM bookings WHERE passenger_id = {placeholder} AND vehicle_id = {placeholder}",
+        cur.execute(f"DELETE FROM bookings WHERE passenger_id = {DB_PLACEHOLDER} AND vehicle_id = {DB_PLACEHOLDER}",
                     (passenger_id, vehicle_id))
         conn.commit()
         flash("Passenger removed successfully!")
@@ -515,14 +532,13 @@ def upgrade_to_driver():
     if request.method == 'POST':
         conn = get_db_connection()
         cur = conn.cursor()
-        placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
         try:
             # Get driver capacity from form
             driver_capacity = int(request.form.get('driver_capacity', 0))
 
             # Update user to driver
-            cur.execute(f"UPDATE users SET is_driver = {placeholder}, driver_capacity = {placeholder} WHERE id = {placeholder}",
+            cur.execute(f"UPDATE users SET is_driver = {DB_PLACEHOLDER}, driver_capacity = {DB_PLACEHOLDER} WHERE id = {DB_PLACEHOLDER}",
                         (True, driver_capacity, current_user.id))
             conn.commit()
 
@@ -548,21 +564,20 @@ def downgrade_to_passenger():
 
     conn = get_db_connection()
     cur = conn.cursor()
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
         # First, find and delete any vehicle owned by this driver
-        cur.execute(f"SELECT id FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+        cur.execute(f"SELECT id FROM vehicles WHERE driver_id = {DB_PLACEHOLDER}", (current_user.id,))
         vehicle = cur.fetchone()
 
         if vehicle:
             # Delete all bookings for this vehicle
-            cur.execute(f"DELETE FROM bookings WHERE vehicle_id = {placeholder}", (vehicle['id'],))
+            cur.execute(f"DELETE FROM bookings WHERE vehicle_id = {DB_PLACEHOLDER}", (vehicle['id'],))
             # Delete the vehicle
-            cur.execute(f"DELETE FROM vehicles WHERE id = {placeholder}", (vehicle['id'],))
+            cur.execute(f"DELETE FROM vehicles WHERE id = {DB_PLACEHOLDER}", (vehicle['id'],))
 
         # Update user to passenger
-        cur.execute(f"UPDATE users SET is_driver = {placeholder} WHERE id = {placeholder}",
+        cur.execute(f"UPDATE users SET is_driver = {DB_PLACEHOLDER} WHERE id = {DB_PLACEHOLDER}",
                     (False, current_user.id))
         conn.commit()
 
@@ -583,7 +598,6 @@ def downgrade_to_passenger():
 def profile():
     conn = get_db_connection()
     cur = conn.cursor()
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     if request.method == 'POST':
         full_name = request.form['full_name']
@@ -604,11 +618,11 @@ def profile():
             if password:
                 # Update with new password
                 hashed = generate_password_hash(password)
-                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, residence = {placeholder}, phone_number = {placeholder}, email = {placeholder}, driver_capacity = {placeholder}, password_hash = {placeholder} WHERE id = {placeholder}",
+                cur.execute(f"UPDATE users SET full_name = {DB_PLACEHOLDER}, username = {DB_PLACEHOLDER}, grade = {DB_PLACEHOLDER}, residence = {DB_PLACEHOLDER}, phone_number = {DB_PLACEHOLDER}, email = {DB_PLACEHOLDER}, driver_capacity = {DB_PLACEHOLDER}, password_hash = {DB_PLACEHOLDER} WHERE id = {DB_PLACEHOLDER}",
                             (full_name, username, grade, residence, phone_number, email, driver_capacity, hashed, current_user.id))
             else:
                 # Update without changing password
-                cur.execute(f"UPDATE users SET full_name = {placeholder}, username = {placeholder}, grade = {placeholder}, residence = {placeholder}, phone_number = {placeholder}, email = {placeholder}, driver_capacity = {placeholder} WHERE id = {placeholder}",
+                cur.execute(f"UPDATE users SET full_name = {DB_PLACEHOLDER}, username = {DB_PLACEHOLDER}, grade = {DB_PLACEHOLDER}, residence = {DB_PLACEHOLDER}, phone_number = {DB_PLACEHOLDER}, email = {DB_PLACEHOLDER}, driver_capacity = {DB_PLACEHOLDER} WHERE id = {DB_PLACEHOLDER}",
                             (full_name, username, grade, residence, phone_number, email, driver_capacity, current_user.id))
             conn.commit()
 
@@ -621,7 +635,7 @@ def profile():
                         vehicle_name = request.form[f'vehicle_name_{vehicle_id}']
                         remember_vehicle = f'remember_vehicle_{vehicle_id}' in request.form
 
-                        cur.execute(f"UPDATE vehicles SET vehicle_name = {placeholder}, remember_vehicle = {placeholder} WHERE id = {placeholder} AND driver_id = {placeholder}",
+                        cur.execute(f"UPDATE vehicles SET vehicle_name = {DB_PLACEHOLDER}, remember_vehicle = {DB_PLACEHOLDER} WHERE id = {DB_PLACEHOLDER} AND driver_id = {DB_PLACEHOLDER}",
                                     (vehicle_name, remember_vehicle, vehicle_id, current_user.id))
                 conn.commit()
 
@@ -639,12 +653,12 @@ def profile():
 
     # GET request - fetch user data
     try:
-        cur.execute(f"SELECT username, grade, residence, phone_number, email, driver_capacity FROM users WHERE id = {placeholder}", (current_user.id,))
+        cur.execute(f"SELECT username, grade, residence, phone_number, email, driver_capacity FROM users WHERE id = {DB_PLACEHOLDER}", (current_user.id,))
         user_data = cur.fetchone()
 
         vehicles_data = []
         if current_user.is_driver:
-            cur.execute(f"SELECT id, vehicle_name, remember_vehicle FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+            cur.execute(f"SELECT id, vehicle_name, remember_vehicle FROM vehicles WHERE driver_id = {DB_PLACEHOLDER}", (current_user.id,))
             vehicles_data = cur.fetchall()
 
         return render_template('profile.html', user_data=user_data, vehicles_data=vehicles_data)
@@ -664,11 +678,10 @@ def demote_admin():
 
     conn = get_db_connection()
     cur = conn.cursor()
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
         # Update user to non-admin
-        cur.execute(f"UPDATE users SET is_admin = {placeholder} WHERE id = {placeholder}",
+        cur.execute(f"UPDATE users SET is_admin = {DB_PLACEHOLDER} WHERE id = {DB_PLACEHOLDER}",
                     (False, current_user.id))
         conn.commit()
 
@@ -699,11 +712,10 @@ def delete_account():
     # Verify password is correct
     conn = get_db_connection()
     cur = conn.cursor()
-    placeholder = "%s" if os.environ.get('DATABASE_URL') else "?"
 
     try:
         # Get user's password hash
-        cur.execute(f"SELECT password_hash FROM users WHERE id = {placeholder}", (current_user.id,))
+        cur.execute(f"SELECT password_hash FROM users WHERE id = {DB_PLACEHOLDER}", (current_user.id,))
         user_row = cur.fetchone()
 
         if not user_row or not check_password_hash(user_row['password_hash'], confirm_password):
@@ -711,24 +723,24 @@ def delete_account():
             return redirect(url_for('profile'))
 
         # Delete all bookings where user is a passenger
-        cur.execute(f"DELETE FROM bookings WHERE passenger_id = {placeholder}", (current_user.id,))
+        cur.execute(f"DELETE FROM bookings WHERE passenger_id = {DB_PLACEHOLDER}", (current_user.id,))
 
         # If user is a driver, remove all passengers from their vehicles and delete vehicles
         if current_user.is_driver:
             # Get all vehicle IDs for this driver
-            cur.execute(f"SELECT id FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+            cur.execute(f"SELECT id FROM vehicles WHERE driver_id = {DB_PLACEHOLDER}", (current_user.id,))
             vehicle_rows = cur.fetchall()
 
             for vehicle_row in vehicle_rows:
                 vehicle_id = vehicle_row['id']
                 # Delete all bookings for this vehicle
-                cur.execute(f"DELETE FROM bookings WHERE vehicle_id = {placeholder}", (vehicle_id,))
+                cur.execute(f"DELETE FROM bookings WHERE vehicle_id = {DB_PLACEHOLDER}", (vehicle_id,))
 
             # Delete all vehicles owned by this user
-            cur.execute(f"DELETE FROM vehicles WHERE driver_id = {placeholder}", (current_user.id,))
+            cur.execute(f"DELETE FROM vehicles WHERE driver_id = {DB_PLACEHOLDER}", (current_user.id,))
 
         # Finally, delete the user account
-        cur.execute(f"DELETE FROM users WHERE id = {placeholder}", (current_user.id,))
+        cur.execute(f"DELETE FROM users WHERE id = {DB_PLACEHOLDER}", (current_user.id,))
 
         conn.commit()
 
