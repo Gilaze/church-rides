@@ -48,34 +48,34 @@
 
                     {% if current_user.is_driver %}
                     <div class="mb-3">
-                        <label class="form-label">Your Max Passenger Capacity (total across all vehicles)</label>
+                        <label class="form-label">Your Max Passenger Capacity</label>
                         <input type="number" name="driver_capacity" class="form-control" value="{{ user_data.driver_capacity }}" min="1" max="30" required>
-                        <small class="form-text text-muted">This is the total number of passengers you can take across ALL your vehicles</small>
+                        <small class="form-text text-muted">This is the total number of passengers you can take</small>
                     </div>
 
                     <hr>
-                    <h5 class="mb-3">Your Vehicles</h5>
+                    <h5 class="mb-3">Your Pickup Locations</h5>
                     {% if vehicles_data %}
                         {% for vehicle in vehicles_data %}
                         <div class="card mb-3">
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label class="form-label">Vehicle Name</label>
+                                    <label class="form-label">Pickup Location</label>
                                     <input type="text" name="vehicle_name_{{ vehicle.id }}" class="form-control" value="{{ vehicle.vehicle_name }}" required>
                                 </div>
                                 <div class="form-check mb-2">
                                     <input class="form-check-input" type="checkbox" name="remember_vehicle_{{ vehicle.id }}" id="rememberVehicle{{ vehicle.id }}" {% if vehicle.remember_vehicle %}checked{% endif %}>
                                     <label class="form-check-label" for="rememberVehicle{{ vehicle.id }}">
-                                        Remember Vehicle
+                                        Remember Pickup Location
                                     </label>
-                                    <small class="form-text text-muted d-block">Keep this vehicle after the weekly Monday 12am reset</small>
+                                    <small class="form-text text-muted d-block">Keep this Pickup Location after the weekly Monday 12am reset</small>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     {% else %}
                         <div class="alert alert-info">
-                            You haven't added any vehicles yet. <a href="/add_vehicle">Add a vehicle</a>
+                            You haven't added any Pickup Locations yet. <a href="/add_vehicle">Add a Pickup Location</a>
                         </div>
                     {% endif %}
                     {% endif %}
@@ -110,8 +110,8 @@
                     <ul class="text-muted small mb-3">
                         <li>Permanently delete your account and all personal information</li>
                         <li>Remove you from any assigned rides</li>
-                        <li>Delete all your vehicles if you're a driver</li>
-                        <li>Remove all passengers from your vehicles</li>
+                        <li>Delete all your Pickup Locations if you're a driver</li>
+                        <li>Remove all passengers from your Pickup Locations</li>
                     </ul>
                     <button type="button" class="btn btn-outline-danger w-100 mb-3" onclick="toggleDeleteAccount()">
                         Delete My Account

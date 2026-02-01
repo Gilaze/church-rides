@@ -15,11 +15,11 @@
             {% if current_user.is_driver %}
                 <form method="POST" action="/downgrade_to_passenger" style="display: inline;">
                     <button type="submit" class="btn btn-danger"
-                            onclick="return confirm('Are you sure? This will remove your vehicle and all its passengers.')">
+                            onclick="return confirm('Are you sure? This will remove your Pickup Location and all its passengers.')">
                         Can't Drive
                     </button>
                 </form>
-                <a href="/add_vehicle" class="btn btn-success">+ Add My Vehicle</a>
+                <a href="/add_vehicle" class="btn btn-success">+ Add My Pickup Location</a>
             {% else %}
                 <a href="/upgrade_to_driver" class="btn btn-outline-primary">Become a Driver</a>
             {% endif %}
@@ -70,7 +70,7 @@
                 </div>
                 {% if current_user.is_authenticated and (car.driver_id == current_user.id or current_user.is_admin) %}
                     <a href="/remove_vehicle/{{ car.id }}" class="btn btn-sm btn-outline-danger"
-                       onclick="return confirm('Are you sure you want to remove this vehicle?')">
+                       onclick="return confirm('Are you sure you want to remove this Pickup Location?')">
                         ✕
                     </a>
                 {% endif %}
@@ -130,7 +130,7 @@
 
     {% if vehicles|length == 0 %}
         <div class="col-12 text-center">
-            <p class="text-muted">No vehicles available yet. Drivers can add their vehicles above.</p>
+            <p class="text-muted">No Pickup Locations available yet. Drivers can add their Pickup Location above.</p>
         </div>
     {% endif %}
 </div>
@@ -141,10 +141,10 @@
     <div class="mb-4">
         <div class="d-flex flex-column gap-2">
             {% if current_user.is_driver %}
-                <a href="/add_vehicle" class="btn btn-success">+ Add My Vehicle</a>
+                <a href="/add_vehicle" class="btn btn-success">+ Add My Pickup Location</a>
                 <form method="POST" action="/downgrade_to_passenger" style="display: inline;">
                     <button type="submit" class="btn btn-danger w-100"
-                            onclick="return confirm('Are you sure? This will remove your vehicle and all its passengers.')">
+                            onclick="return confirm('Are you sure? This will remove your Pickup Location and all its passengers.')">
                         Can't Drive
                     </button>
                 </form>
